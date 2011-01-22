@@ -93,11 +93,12 @@ import math
 import logging
 import pickle
 import os.path
+import urllib2
 
 import yaf_export
 import yaf_export_corefarm
 from yaf_export import yafrayRender
-from corefarm import StaticFarm, AccessForbiddenError
+from corefarm import StaticFarm, AccessForbiddenError, CoreFarmError
 import yafrayinterface
 
 from Blender import *
@@ -2820,7 +2821,7 @@ def button_event(evt):  # the function to handle Draw Button events
 		
 		try:
 			# First, we get the job_id
-			job_id = farm.get_new_job()
+			job_id = farm.get_new_job('yafaray')
 
 			# Second we generate the XML light job, we replace all the textures by flat names and we upload them 
 			## __light__ export
@@ -2838,7 +2839,7 @@ def button_event(evt):  # the function to handle Draw Button events
 			output = yRender.render () ;
 			Window.DrawProgressBar(0.6, "Scene export ready")
 			farm.upload (job_id, output, True)
-
+			Window.DrawProgressBar(1.0, "Scene uploaded")
 			## Debug message
 			Blender.Draw.PupMenu(unicode("Job has been dispatched on the corefarm; you can check its status from your manager on www.corefarm.com. Thanks!"))
 			## Tons of error handling has to be done here 
@@ -2862,6 +2863,81 @@ def button_event(evt):  # the function to handle Draw Button events
 				"""
 				raise
 		except Exception:
+			Blender.Window.DrawProgressBar(1.0, "Done with error")
+
+# Resetting 
+		TabRenderer.Renderer["output_method"] = previousOutputMethod
+
+# Render anim on the Corefarm 
+	elif evt == evRenderAnimOnCorefarm: 
+		log.debug ('event is evRenderAnimOnCorefarm') 
+		TabRenderer.setPropertyList()
+		scene = Blender.Scene.GetCurrent()
+
+		# Switch to XML generation
+		previousOutputMethod = TabRenderer.Renderer["output_method"]
+		TabRenderer.Renderer["output_method"] = "XML"
+		copyParamsOverwrite(TabRenderer.Renderer, scene.properties['YafRay']['Renderer'])
+		
+		# Set properties 
+
+		for obj in scene.objects:
+			TabObject.setPropertyList(obj)
+
+		tmpMat = TabMaterial.curMat
+		for mat in Blender.Material.Get():
+			TabMaterial.setPropertyList(mat)
+		TabMaterial.curMat = tmpMat
+		
+		Window.DrawProgressBar(0.0, "Aggregating the scene components")
+
+		
+		## now we sync with the corefarm
+		farm = StaticFarm(TabFarmSettings.guiLogin.val,
+				  TabFarmSettings.guiKey.val,
+				  TabFarmSettings.guiRenderOutputMethod.val)
+		
+		try:
+			job_id = farm.get_new_job('yafaray') 
+		## __light__ export
+			yinterface = yafrayinterface.xmlInterface_t()
+			yinterface.loadPlugins(dllPath)
+			yRenderCorefarm.setInterface(yinterface)
+			output_light=yRenderCorefarm.renderAnim(farm, job_id)
+			Window.DrawProgressBar(0.5, "Scene summary ready")
+			farm.upload (job_id, output_light, True)
+		
+		## full export, scene after scene 
+			yinterface = yafrayinterface.xmlInterface_t()
+			yinterface.loadPlugins(dllPath)
+			yRender.setInterface(yinterface)
+			outputs=yRender.renderAnim(False)
+			Window.DrawProgressBar(0.5, "Uploading each scene")
+			for file in outputs: 
+				farm.upload (job_id, file, True)
+			Window.DrawProgressBar(1.0, "Scene uploaded")
+		
+			
+		except AccessForbiddenError:
+			Blender.Draw.PupMenu(unicode("Please specify your corefarm credentials or register on www.corefarm.com"))
+			button_event(TabFarmSettings.evShow)
+		except urllib2.HTTPError, e:
+			Blender.Draw.PupMenu('Service is unavailable, please, try later.')
+		except IOError, e:
+			Blender.Window.DrawProgressBar(1.0, "Done with warning")
+			if e.errno == 'socket error':
+				Blender.Draw.PupMenu('Service is unavailable, please try later.')
+			else:
+				raise
+		except CoreFarmError, e:
+			Blender.Draw.PupMenu(unicode(e))
+			Blender.Window.DrawProgressBar(1.0, "Done with warning")
+			if isinstance(e, AccessForbiddenError):
+				""" Reraise exception to handle it in the event loop.
+				"""
+				raise
+		except Exception, inst:
+			Blender.Draw.PupMenu (inst.args[0])
 			Blender.Window.DrawProgressBar(1.0, "Done with error")
 
 # Resetting 
@@ -3011,6 +3087,7 @@ def gui():				# the function to draw the screen
 	height = drawSepLineText(10, height, 320, "Render on the Corefarm", "normal")
 	height -= 20
 	Draw.PushButton("R E N D E R", evRenderOnCorefarm, 10, height, 130, largeButtonHeight, "Render image")
+	Draw.PushButton("Render anim", evRenderAnimOnCorefarm, 150, height, 85, largeButtonHeight, "Render animation on corefarm")
 	height -= 20		
 	drawText (10, height, "Corefarm is a rendering farm in the cloud, capable of speeding up your"); 
 	height -= 15 
@@ -3074,7 +3151,7 @@ def main():
 
 	global guiHeightOffset, guiWidgetHeight, guiDrawOffset, lastMousePosX,\
 	lastMousePosY, middlePressed, currentSelection,\
-	Tab, noTab, helpTab, evShowHelp, evRenderView, evRender, evRenderAnim, evRenderOnCorefarm,\
+	Tab, noTab, helpTab, evShowHelp, evRenderView, evRender, evRenderAnim, evRenderOnCorefarm, evRenderAnimOnCorefarm,\
 	TabMaterial, TabWorld, TabRenderer, TabObject, TabFarmSettings, uniqueCounter, libmat, PanelHeight
 
 	PanelHeight = 100
@@ -3097,6 +3174,7 @@ def main():
 	evRender = getUniqueValue()
 	evRenderAnim = getUniqueValue()
 	evRenderOnCorefarm = getUniqueValue()
+	evRenderAnimOnCorefarm = getUniqueValue()
 
 	TabMaterial = clTabMaterial()
 	TabWorld = clTabWorld()

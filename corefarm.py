@@ -71,14 +71,14 @@ class StaticFarm(object):
 		data['signature'] = hash.hexdigest()
 		return data
 
-	def get_new_job(self): 
+	def get_new_job(self, kind): 
 		self._log.debug('Getting a new job id.')
 		socket.setdefaulttimeout(10)
 		method = 'new_job'
 		parameters = self._sign(
 			method,
 			dict(
-				application = 'yafaray',
+				application = kind, 
 				date = str(int(time.time())),
 				isconfidential = 'true',
 			)
@@ -178,7 +178,7 @@ class StaticFarm(object):
 				self._log.debug('UPLOADING PART %s' % part_number)
 				etags[part_number] = self._upload_part(data, part_number, key, upload_id)
 
-				Blender.Window.DrawProgressBar(num_parts / part_number, "Uploading the data ...")
+				#Blender.Window.DrawProgressBar(num_parts / part_number, "Uploading the data ...")
 				data = file.read(chunk_size)
 				part_number += 1
 			file.close () 

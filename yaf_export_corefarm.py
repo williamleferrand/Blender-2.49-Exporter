@@ -901,31 +901,32 @@ class yafrayRender:
 
 	# render an animation, renders the frames as defined in the blender
 	# UI, render to the output dir on F10 unless the string is empty
-	def renderAnim(self):
+	def renderAnim(self, farm, job_id):
 		render = self.scene.getRenderingContext()
 		startFrame = render.sFrame
 		endFrame = render.eFrame
 		self.viewRender = False
 		#Window.DrawProgressBar(0.0, "Rendering animation ...")
-		for i in range(startFrame, endFrame + 1):
+		i = startFrame 
+
+		#for i in range(startFrame, endFrame + 1):
 			#Window.DrawProgressBar(i/(1 + endFrame - startFrame), "Rendering frame "+str(i))
-			self.yi.printInfo("Exporter: Rendering frame " + str(i))
-			render.currentFrame(i)
-			self.yi.clearAll()
-			renderCoords = self.getRenderCoords()
-			output = self.startScene(renderCoords, i)
-			self.collectObjects()
-			self.exportTextures()
-			self.exportMaterials()
-			self.exportWorld()
-			self.exportLights()
+		self.yi.printInfo("Exporter: Rendering frame " + str(i))
+		render.currentFrame(i)
+		self.yi.clearAll()
+		renderCoords = self.getRenderCoords()
+		output = [oc, outputfile ] = self.startScene(renderCoords, i)
+		self.collectObjects()
+		self.exportTextures(farm, job_id)
+		self.exportMaterials()
+		self.exportWorld(farm, job_id)
+		self.exportLights()
 			#if not self.exportLights():
 			#	return
-			self.exportObjects()
-			self.writeRender(renderCoords)
-			userBreak = self.startRender(renderCoords, output, i)
-			if userBreak > 0:
-				break
+		#self.exportObjects()
+		self.writeRender(renderCoords)
+		return outputfile
+		
 				
 	def renderCL(self):
 		renderCoords = self.getRenderCoords()

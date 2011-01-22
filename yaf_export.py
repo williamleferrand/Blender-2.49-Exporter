@@ -895,11 +895,12 @@ class yafrayRender:
 
 	# render an animation, renders the frames as defined in the blender
 	# UI, render to the output dir on F10 unless the string is empty
-	def renderAnim(self):
+	def renderAnim(self, aBreak=True):
 		render = self.scene.getRenderingContext()
 		startFrame = render.sFrame
 		endFrame = render.eFrame
 		self.viewRender = False
+		files = []
 		#Window.DrawProgressBar(0.0, "Rendering animation ...")
 		for i in range(startFrame, endFrame + 1):
 			#Window.DrawProgressBar(i/(1 + endFrame - startFrame), "Rendering frame "+str(i))
@@ -907,7 +908,7 @@ class yafrayRender:
 			render.currentFrame(i)
 			self.yi.clearAll()
 			renderCoords = self.getRenderCoords()
-			output = self.startScene(renderCoords, i)
+			output = [oc, outputfile] = self.startScene(renderCoords, i)
 			self.collectObjects()
 			self.exportTextures()
 			self.exportMaterials()
@@ -917,9 +918,13 @@ class yafrayRender:
 			#	return
 			self.exportObjects()
 			self.writeRender(renderCoords)
+			files.append (outputfile)
+
 			userBreak = self.startRender(renderCoords, output, i)
-			if userBreak > 0:
-				break
+			
+			if userBreak and aBreak > 0:
+				return files 
+		return files 
 				
 	def renderCL(self):
 		renderCoords = self.getRenderCoords()
