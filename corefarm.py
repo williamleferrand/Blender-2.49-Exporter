@@ -222,3 +222,40 @@ class StaticFarm(object):
 
 		if result and result.code != 200:
 			self._log.debug('Response from S3: %r' % result)
+
+
+	def start_job(self, job_id):
+		self._log.debug('Starting the job: %s' % job_id)
+		self._log.debug('Job type: %d' % self._output_type)
+		socket.setdefaulttimeout(10)
+		method = 'start_job'
+		parameters = self._sign(
+			method,
+			dict(
+				id = job_id,
+      				custom = str (self._output_type),
+				timestamp = str(int(time.time()))  
+				)
+			)
+		self._log.debug('Start job params: %r' % (parameters))
+
+		url = '%s%s?%s' % (
+			COREFARM_API,
+			method,
+			urllib.urlencode(parameters)
+		)
+
+		self._log.debug('Fetching the URL: %r' % url)
+		request = urllib2.Request(url, headers = self.HEADERS)
+		result = opener.open(request).read()
+
+		self._log.debug('Result is: %r' % result)
+		result = simplejson.loads(result)
+
+		if 'status' in result:
+			if result['status'] == 0:
+				return ; # Blender.Draw.PupMenu('Your job is now running. You can track its status from your manager on www.corefarm.com; you will also receive an email when it is completed. Thanks!')
+			else:
+				raise CoreFarmError(result['message'])
+		else:
+			raise RuntimeError('Unknown result from the server')

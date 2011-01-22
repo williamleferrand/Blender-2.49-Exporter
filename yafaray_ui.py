@@ -2841,14 +2841,15 @@ def button_event(evt):  # the function to handle Draw Button events
 			farm.upload (job_id, output, True)
 			Window.DrawProgressBar(1.0, "Scene uploaded")
 			## Debug message
-			Blender.Draw.PupMenu(unicode("Job has been dispatched on the corefarm; you can check its status from your manager on www.corefarm.com. Thanks!"))
+			farm.start_job (job_id); 
+			Blender.Draw.PupMenu(unicode("Corefarm success|Job has been dispatched on the corefarm; you can check its status from your manager on www.corefarm.com. Thanks!"))
 			## Tons of error handling has to be done here 
 
 		except AccessForbiddenError:
-			Blender.Draw.PupMenu(unicode("Please specify your corefarm credentials or register on www.corefarm.com"))
+			Blender.Draw.PupMenu(unicode("Corefarm|Please specify your corefarm credentials or register on www.corefarm.com"))
 			button_event(TabFarmSettings.evShow)
 		except urllib2.HTTPError, e:
-			Blender.Draw.PupMenu('Service is unavailable')
+			Blender.Draw.PupMenu('Corefarm Error|Service is unavailable')
 		except IOError, e:
 			Blender.Draw.PupMenu('IOError')
 			Blender.Window.DrawProgressBar(1.0, "Done with warning")
@@ -2865,9 +2866,10 @@ def button_event(evt):  # the function to handle Draw Button events
 				raise
 		except RuntimeError, e: 
 			Blender.Draw.PupMenu(unicode(e))
-		except Exception:
+		except Exception, e:
+			Blender.Draw.PupMenu("Exception!")
 			Blender.Window.DrawProgressBar(1.0, "Done with error")
-
+			raise e
 # Resetting 
 		TabRenderer.Renderer["output_method"] = previousOutputMethod
 
@@ -2918,18 +2920,20 @@ def button_event(evt):  # the function to handle Draw Button events
 			Window.DrawProgressBar(0.5, "Uploading each scene")
 			for file in outputs: 
 				farm.upload (job_id, file, True)
+			
+			farm.start_job (job_id); 
 			Window.DrawProgressBar(1.0, "Scene uploaded")
-		
+			Blender.Draw.PupMenu(unicode("Corefarm success|Job has been dispatched on the corefarm; you can check its status from your manager on www.corefarm.com. Thanks!"))
 			
 		except AccessForbiddenError:
-			Blender.Draw.PupMenu(unicode("Please specify your corefarm credentials or register on www.corefarm.com"))
+			Blender.Draw.PupMenu(unicode("Corefarm|Please specify your corefarm credentials or register on www.corefarm.com"))
 			button_event(TabFarmSettings.evShow)
 		except urllib2.HTTPError, e:
 			Blender.Draw.PupMenu('Service is unavailable, please, try later.')
 		except IOError, e:
 			Blender.Window.DrawProgressBar(1.0, "Done with warning")
 			if e.errno == 'socket error':
-				Blender.Draw.PupMenu('Service is unavailable, please try later.')
+				Blender.Draw.PupMenu('Corefarm Error|Service is unavailable, please try later.')
 			else:
 				raise
 		except CoreFarmError, e:
