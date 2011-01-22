@@ -2750,7 +2750,9 @@ def button_event(evt):  # the function to handle Draw Button events
 
 	if evt == evShowHelp:
 		Tab = helpTab
-	elif evt == evRender or evt == evRenderAnim or evt == evRenderView:
+
+	
+	elif evt in (evRender, evRenderAnim, evRenderView):
 		# execute all init methods to ensure all properties are
 		# initialized.  only on objects and materials, render settings
 		# seem to be pointless, since they should be set by the user at
@@ -2783,6 +2785,39 @@ def button_event(evt):  # the function to handle Draw Button events
 			if result == 0:
 				yRender.renderAnim()
 				
+## Render on the COREFARM 
+	elif evt == evRenderOnCorefarm: 
+		print "Set property list in TabRenderer"
+		TabRenderer.setPropertyList()
+		scene = Blender.Scene.GetCurrent()
+
+		# Switch to XML generation
+		previousOutputMethod = TabRenderer.Renderer["output_method"]
+		TabRenderer.Renderer["output_method"] = "XML"
+		copyParamsOverwrite(TabRenderer.Renderer, scene.properties['YafRay']['Renderer'])
+		
+		# Set properties 
+
+		for obj in scene.objects:
+			TabObject.setPropertyList(obj)
+
+		tmpMat = TabMaterial.curMat
+		for mat in Blender.Material.Get():
+			TabMaterial.setPropertyList(mat)
+		TabMaterial.curMat = tmpMat
+		
+		yinterface = yafrayinterface.xmlInterface_t()
+		yinterface.loadPlugins(dllPath)
+		
+		yRender.setInterface(yinterface)
+		
+		output = yRender.render()
+
+		print "Ok rendering triggered, now resetting the outputMethod"
+# Resetting 
+		TabRenderer.Renderer["output_method"] = previousOutputMethod
+
+
 	elif evt == TabFarmSettings.evShow:
 		Tab = TabFarmSettings.tabNum
 	elif evt == TabFarmSettings.evEdit:
@@ -2925,7 +2960,7 @@ def gui():				# the function to draw the screen
 	# Render in the cloud 
 	height = drawSepLineText(10, height, 320, "Render on the Corefarm", "normal")
 	height -= 20
-	Draw.PushButton("R E N D E R", evRender, 10, height, 130, largeButtonHeight, "Render image")
+	Draw.PushButton("R E N D E R", evRenderOnCorefarm, 10, height, 130, largeButtonHeight, "Render image")
 	height -= 20		
 	drawText (10, height, "Corefarm is a rendering farm in the cloud, capable of speeding up your"); 
 	height -= 15 
@@ -2989,7 +3024,7 @@ def main():
 
 	global guiHeightOffset, guiWidgetHeight, guiDrawOffset, lastMousePosX,\
 	lastMousePosY, middlePressed, currentSelection,\
-	Tab, noTab, helpTab, evShowHelp, evRenderView, evRender, evRenderAnim,\
+	Tab, noTab, helpTab, evShowHelp, evRenderView, evRender, evRenderAnim, evRenderOnCorefarm,\
 	TabMaterial, TabWorld, TabRenderer, TabObject, TabFarmSettings, uniqueCounter, libmat, PanelHeight
 
 	PanelHeight = 100
@@ -3011,6 +3046,7 @@ def main():
 	evRenderView = getUniqueValue()
 	evRender = getUniqueValue()
 	evRenderAnim = getUniqueValue()
+	evRenderOnCorefarm = getUniqueValue()
 
 	TabMaterial = clTabMaterial()
 	TabWorld = clTabWorld()
