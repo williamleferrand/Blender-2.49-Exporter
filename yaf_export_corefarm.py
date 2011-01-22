@@ -870,12 +870,12 @@ class yafrayRender:
 				self.viewRender = True
 		self.yi.clearAll()
 		renderCoords = self.getRenderCoords()
-		output = self.startScene(renderCoords)
+		output = [ oc, outputfile] = self.startScene(renderCoords)
 		 
 		# output = self.startScene(renderCoords)
 #		Window.DrawProgressBar(0.0, "YafaRay collecting ...")
 		self.collectObjects()
-		Window.DrawProgressBar(0.1, "YafaRay textures ...")
+#		Window.DrawProgressBar(0.1, "YafaRay textures ...")
 		self.exportTextures()
 #		Window.DrawProgressBar(0.2, "YafaRay materials ...")
 		self.exportMaterials()
@@ -890,9 +890,10 @@ class yafrayRender:
 #		Window.DrawProgressBar(0.9, "YafaRay world ...")
 		self.exportWorld()
 		self.writeRender(renderCoords)
-		Window.DrawProgressBar(0.0, "YafaRay rendering ...")
+#		Window.DrawProgressBar(0.0, "YafaRay rendering ...")
 		self.startRender(renderCoords, output)
-		Window.DrawProgressBar(1.0, "YafaRay rendering ...")
+#		Window.DrawProgressBar(1.0, "YafaRay rendering ...")
+		return outputfile
 
 	# render an animation, renders the frames as defined in the blender
 	# UI, render to the output dir on F10 unless the string is empty

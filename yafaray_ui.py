@@ -2810,21 +2810,43 @@ def button_event(evt):  # the function to handle Draw Button events
 			TabMaterial.setPropertyList(mat)
 		TabMaterial.curMat = tmpMat
 		
-		## __light__ export
-		yinterface = yafrayinterface.xmlInterface_t()
-		yinterface.loadPlugins(dllPath)
-		yRenderCorefarm.setInterface(yinterface)
-		output_light = yRenderCorefarm.render()
-		
+		Window.DrawProgressBar(0.0, "Aggregating the scene components")
+	
+
 		## full export
 		yinterface = yafrayinterface.xmlInterface_t()
 		yinterface.loadPlugins(dllPath)
 		yRender.setInterface (yinterface)
 		output = yRender.render () ;
+		Window.DrawProgressBar(0.1, "Scene export ready")
 		
+		## now we sync with the corefarm
 		farm = StaticFarm(TabFarmSettings.guiLogin.val,
-			    TabFarmSettings.guiKey.val,
-			    TabFarmSettings.guiRenderOutputMethod.val)
+				  TabFarmSettings.guiKey.val,
+				  TabFarmSettings.guiRenderOutputMethod.val)
+
+		
+		try:
+			# First, we get the job_id
+			job_id = farm.get_new_job()
+
+			# Second we generate the XML light job, we replace all the textures by flat names and we upload them 
+			## __light__ export
+			yinterface = yafrayinterface.xmlInterface_t()
+			yinterface.loadPlugins(dllPath)
+			yRenderCorefarm.setInterface(yinterface)
+			output_light = yRenderCorefarm.render()
+			Window.DrawProgressBar(0.1, "Scene summary ready")
+
+
+			## Debug message
+			Blender.Draw.PupMenu(unicode(job_id))
+			## Tons of error handling has to be done here 
+
+		except AccessForbiddenError:
+			Blender.Draw.PupMenu(unicode("Please specify your corefarm credentials or register on www.corefarm.com"))
+			button_event(TabFarmSettings.evShow)
+		
 
 		print "Ok rendering triggered, now resetting the outputMethod"
 # Resetting 
