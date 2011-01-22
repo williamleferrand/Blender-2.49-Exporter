@@ -97,7 +97,7 @@ import os.path
 import yaf_export
 import yaf_export_corefarm
 from yaf_export import yafrayRender
-from corefarm2 import StaticFarm, AccessForbiddenError
+from corefarm import StaticFarm, AccessForbiddenError
 import yafrayinterface
 
 from Blender import *
