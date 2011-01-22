@@ -2811,20 +2811,12 @@ def button_event(evt):  # the function to handle Draw Button events
 		TabMaterial.curMat = tmpMat
 		
 		Window.DrawProgressBar(0.0, "Aggregating the scene components")
-	
 
-		## full export
-		yinterface = yafrayinterface.xmlInterface_t()
-		yinterface.loadPlugins(dllPath)
-		yRender.setInterface (yinterface)
-		output = yRender.render () ;
-		Window.DrawProgressBar(0.1, "Scene export ready")
 		
 		## now we sync with the corefarm
 		farm = StaticFarm(TabFarmSettings.guiLogin.val,
 				  TabFarmSettings.guiKey.val,
 				  TabFarmSettings.guiRenderOutputMethod.val)
-
 		
 		try:
 			# First, we get the job_id
@@ -2835,20 +2827,43 @@ def button_event(evt):  # the function to handle Draw Button events
 			yinterface = yafrayinterface.xmlInterface_t()
 			yinterface.loadPlugins(dllPath)
 			yRenderCorefarm.setInterface(yinterface)
-			output_light = yRenderCorefarm.render()
-			Window.DrawProgressBar(0.1, "Scene summary ready")
-
+			output_light = yRenderCorefarm.render(farm, job_id)
+			Window.DrawProgressBar(0.5, "Scene summary ready")
+			farm.upload (job_id, output_light, True)
+			
+			## full export
+			yinterface = yafrayinterface.xmlInterface_t()
+			yinterface.loadPlugins(dllPath)
+	 		yRender.setInterface (yinterface)
+			output = yRender.render () ;
+			Window.DrawProgressBar(0.6, "Scene export ready")
+			farm.upload (job_id, output, True)
 
 			## Debug message
-			Blender.Draw.PupMenu(unicode(job_id))
+			Blender.Draw.PupMenu(unicode("Job has been dispatched on the corefarm; you can check its status from your manager on www.corefarm.com. Thanks!"))
 			## Tons of error handling has to be done here 
 
 		except AccessForbiddenError:
 			Blender.Draw.PupMenu(unicode("Please specify your corefarm credentials or register on www.corefarm.com"))
 			button_event(TabFarmSettings.evShow)
-		
+		except urllib2.HTTPError, e:
+			Blender.Draw.PupMenu('Service is unavailable, please, try later.')
+		except IOError, e:
+			Blender.Window.DrawProgressBar(1.0, "Done with warning")
+			if e.errno == 'socket error':
+				Blender.Draw.PupMenu('Service is unavailable, please try later.')
+			else:
+				raise
+		except CoreFarmError, e:
+			Blender.Draw.PupMenu(unicode(e))
+			Blender.Window.DrawProgressBar(1.0, "Done with warning")
+			if isinstance(e, AccessForbiddenError):
+				""" Reraise exception to handle it in the event loop.
+				"""
+				raise
+		except Exception:
+			Blender.Window.DrawProgressBar(1.0, "Done with error")
 
-		print "Ok rendering triggered, now resetting the outputMethod"
 # Resetting 
 		TabRenderer.Renderer["output_method"] = previousOutputMethod
 

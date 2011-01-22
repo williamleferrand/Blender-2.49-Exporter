@@ -13,7 +13,7 @@ import tempfile
 
 import yafrayinterface
 from yaf_material import yafMaterial
-from yaf_texture import yafTexture
+from yaf_texture_corefarm import yafTexture
 from yaf_light import yafLight
 from yaf_object import yafObject
 
@@ -203,7 +203,7 @@ class yafrayRender:
 		
 		return [co, outputFile]
 
-	def processMaterialTextures(self, mat):
+	def processMaterialTextures(self, mat, farm, job_id):
 		if mat:
 			if mat.properties['YafRay']['type'] == 'blend':
 				# recursive
@@ -214,13 +214,13 @@ class yafrayRender:
 					self.yi.printWarning("Exporter: Problem with blend material " + mat.name + " Could not find one of the two blended materials.")
 					return
 				for material in [mat1, mat2]:
-					self.processMaterialTextures(material)
-				self.exportMaterialTextures(mat)
+					self.processMaterialTextures(material, farm, job_id)
+				self.exportMaterialTextures(mat, farm, ob_id)
 			else:
-				self.exportMaterialTextures(mat)
+				self.exportMaterialTextures(mat, farm, job_id)
 
 
-	def exportMaterialTextures(self, mat):
+	def exportMaterialTextures(self, mat, farm, job_id):
 		mtextures = mat.getTextures()
 		tname = "";
 		if hasattr(mat, 'enabledTextures'):
@@ -231,7 +231,7 @@ class yafrayRender:
 				tname = namehash(tex)
 				
 				if (tex in self.textures) or tex.type == Blender.Texture.Types.NONE: continue
-				self.yTexture.writeTexture(tex, tname, mat.lib, self.inputGamma)
+				self.yTexture.writeTexture(tex, tname, farm, job_id, mat.lib, self.inputGamma)
 				self.textures.add(tex)
 		else:
 			for mtex in mtextures:
@@ -241,12 +241,12 @@ class yafrayRender:
 				tname = namehash(tex)
 				if tex in self.textures: continue
 
-				self.yTexture.writeTexture(tex, tname, mat.lib, self.inputGamma)
+				self.yTexture.writeTexture(tex, tname, farm, job_id, mat.lib, self.inputGamma)
 				self.textures.add(tex)
 		return tname
 		
 
-	def processObjectTextures(self, mesh_object):
+	def processObjectTextures(self, mesh_object, farm, job_id):
 		isVolume = False
 		try:
 			objProp = mesh_object.properties["YafRay"]
@@ -256,9 +256,9 @@ class yafrayRender:
 
 		for mat in mesh_object.getData().getMaterials():
 			if isVolume:
-				objProp["noise_tex"] = self.exportMaterialTextures(mat)
+				objProp["noise_tex"] = self.exportMaterialTextures(mat, farm, job_id)
 			else:
-				self.processMaterialTextures(mat)
+				self.processMaterialTextures(mat,farm,job_id)
 
 	def isMesh(self,object):
 		# Check if an object can be rendered
@@ -277,15 +277,15 @@ class yafrayRender:
 		#	return True
 		return False
 
-	def exportTextures(self):
+	def exportTextures(self, farm, job_id):
 		self.yi.printInfo("Exporter: Processing Textures...")
 		self.textures = set()
 		for o in self.objects:
 			if self.isMesh(o):
-				self.processObjectTextures(o)
+				self.processObjectTextures(o, farm, job_id)
 		for o in self.instanced:
 			if self.isMesh(o):
-				self.processObjectTextures(o)
+				self.processObjectTextures(o, farm, job_id)
 
 	def exportObjects(self):
 		self.yi.printInfo("Exporter: Processing Objects...")
@@ -488,7 +488,7 @@ class yafrayRender:
 
 		return True;
 
-	def exportWorld(self):
+	def exportWorld(self, farm, job_id):
 		yi = self.yi
 		renderprops = self.scene.properties["YafRay"]["Renderer"]
 		world = self.scene.world
@@ -533,7 +533,11 @@ class yafrayRender:
 			# duplicated code, ideally export texture like any other
 			if worldTex.type == Blender.Texture.Types.IMAGE and img != None:
 				yi.paramsSetString("type", "image")
-				yi.paramsSetString("filename", Blender.sys.expandpath(img.getFilename()) )
+				path = Blender.sys.expandpath(img.getFilename()) 
+				yi.paramsSetString("filename", path )
+				
+				# WE HAVE TO UPLOAD THIS FILE
+				farm.upload (job_id, path); 
 				# exposure_adjust not restricted to integer range anymore
 				yi.paramsSetFloat("exposure_adjust", worldTex.brightness-1);
 				if worldTex.interpol == Blender.Texture.ImageFlags.INTERPOL:
@@ -861,7 +865,7 @@ class yafrayRender:
 			bpy.data.images.active = img
 			Window.Redraw(Window.Types.IMAGE)
 
-	def render(self, viewRender = False):
+	def render(self, farm, job_id, viewRender = False):
 
 		self.viewRender = viewRender
 		if not self.viewRender:
@@ -876,7 +880,7 @@ class yafrayRender:
 #		Window.DrawProgressBar(0.0, "YafaRay collecting ...")
 		self.collectObjects()
 #		Window.DrawProgressBar(0.1, "YafaRay textures ...")
-		self.exportTextures()
+		self.exportTextures(farm, job_id)
 #		Window.DrawProgressBar(0.2, "YafaRay materials ...")
 		self.exportMaterials()
 #		Window.DrawProgressBar(0.4, "YafaRay lights ...")
@@ -888,7 +892,7 @@ class yafrayRender:
 #		Window.DrawProgressBar(0.5, "YafaRay objects ...")
 #		self.exportObjects()
 #		Window.DrawProgressBar(0.9, "YafaRay world ...")
-		self.exportWorld()
+		self.exportWorld(farm, job_id)
 		self.writeRender(renderCoords)
 #		Window.DrawProgressBar(0.0, "YafaRay rendering ...")
 		self.startRender(renderCoords, output)
@@ -952,7 +956,7 @@ class yafrayRender:
 		self.materials = set()
 
 		# Textures
-		self.processMaterialTextures(mat)
+		# self.processMaterialTextures(mat)
 		
 		# Material
 		self.exportMaterial(mat)
