@@ -29,7 +29,7 @@ import Blender
 #
 # then set dllPath = "..\\YafaRay\\"
 # dllPath = "..\\YafaRay\\"
-
+ 
 dllPath = ""
 pythonPath = ""
 haveQt = True
@@ -95,14 +95,16 @@ import pickle
 import os.path
 
 import yaf_export
+import yaf_export_corefarm
 from yaf_export import yafrayRender
+from corefarm2 import StaticFarm, AccessForbiddenError
 import yafrayinterface
 
 from Blender import *
 
-DEBUG = False
+DEBUG = True 
 HOME = os.environ.get('HOME', None)
-
+ 
 if DEBUG and HOME is not None:
 	logging.basicConfig(
 		filename = os.path.join(HOME, 'yafaray-export.log'),
@@ -114,6 +116,8 @@ log = logging.getLogger('yafaray.export')
 yaf_export.haveQt = haveQt
 
 yRender = yafrayRender()
+yRenderCorefarm = yaf_export_corefarm.yafrayRender ()
+
 yInterface = yafrayinterface.yafrayInterface_t()
 yInterface.loadPlugins(dllPath)
 
@@ -2787,7 +2791,7 @@ def button_event(evt):  # the function to handle Draw Button events
 				
 ## Render on the COREFARM 
 	elif evt == evRenderOnCorefarm: 
-		print "Set property list in TabRenderer"
+		log.debug ('event is evRenderOnCorefarm') 
 		TabRenderer.setPropertyList()
 		scene = Blender.Scene.GetCurrent()
 
@@ -2809,9 +2813,18 @@ def button_event(evt):  # the function to handle Draw Button events
 		yinterface = yafrayinterface.xmlInterface_t()
 		yinterface.loadPlugins(dllPath)
 		
-		yRender.setInterface(yinterface)
+		yRenderCorefarm.setInterface(yinterface)
+		yRender.setInterface (yinterface)
+		log.debug ('calling yRenderCorefarm.render ()') 
+
+		## So here we do two exports : the XML and a simplified one without the mesh 
 		
-		output = yRender.render()
+		output_light = yRenderCorefarm.render()
+		output = yRender.render () ;
+		
+		farm = StaticFarm(TabFarmSettings.guiLogin.val,
+			    TabFarmSettings.guiKey.val,
+			    TabFarmSettings.guiRenderOutputMethod.val)
 
 		print "Ok rendering triggered, now resetting the outputMethod"
 # Resetting 

@@ -43,7 +43,7 @@ class CoreFarmError(RuntimeWarning): pass
 class AccessForbiddenError(CoreFarmError): pass
 
 
-class Farm(object):
+class StaticFarm(object):
 	HEADERS = {
 		'User-Agent': USER_AGENT,
 	} 
