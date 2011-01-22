@@ -88,7 +88,7 @@ if haveQt:
 
 
 import string
-import math
+import math 
 
 import logging
 import pickle
@@ -2810,16 +2810,16 @@ def button_event(evt):  # the function to handle Draw Button events
 			TabMaterial.setPropertyList(mat)
 		TabMaterial.curMat = tmpMat
 		
+		## __light__ export
 		yinterface = yafrayinterface.xmlInterface_t()
 		yinterface.loadPlugins(dllPath)
-		
 		yRenderCorefarm.setInterface(yinterface)
-		yRender.setInterface (yinterface)
-		log.debug ('calling yRenderCorefarm.render ()') 
-
-		## So here we do two exports : the XML and a simplified one without the mesh 
-		
 		output_light = yRenderCorefarm.render()
+		
+		## full export
+		yinterface = yafrayinterface.xmlInterface_t()
+		yinterface.loadPlugins(dllPath)
+		yRender.setInterface (yinterface)
 		output = yRender.render () ;
 		
 		farm = StaticFarm(TabFarmSettings.guiLogin.val,

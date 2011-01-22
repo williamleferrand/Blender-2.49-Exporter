@@ -173,7 +173,7 @@ class yafrayRender:
 		if self.scene.properties["YafRay"]["Renderer"]["output_method"] == "XML":
 			co = yafrayinterface.imageOutput_t()
 			outputFile = self.getOutputFilename(frameNumber, False)
-			outputFile += '.xml'
+			outputFile += '__light__.xml'
 			self.yi.printInfo("Exporter: Writing XML " + outputFile)
 			self.yi.setOutfile(outputFile)
 		elif self.scene.properties["YafRay"]["Renderer"]["output_method"] == "GUI" and haveQt:
@@ -871,21 +871,23 @@ class yafrayRender:
 		self.yi.clearAll()
 		renderCoords = self.getRenderCoords()
 		output = self.startScene(renderCoords)
-		Window.DrawProgressBar(0.0, "YafaRay collecting ...")
+		 
+		# output = self.startScene(renderCoords)
+#		Window.DrawProgressBar(0.0, "YafaRay collecting ...")
 		self.collectObjects()
 		Window.DrawProgressBar(0.1, "YafaRay textures ...")
 		self.exportTextures()
-		Window.DrawProgressBar(0.2, "YafaRay materials ...")
+#		Window.DrawProgressBar(0.2, "YafaRay materials ...")
 		self.exportMaterials()
-		Window.DrawProgressBar(0.4, "YafaRay lights ...")
+#		Window.DrawProgressBar(0.4, "YafaRay lights ...")
 		self.exportLights()
 		# TODO: Check if we have at least one light (lamp, background, etc..)?
 		#if not self.exportLights():
 		#	Window.DrawProgressBar(1.0, "YafaRay rendering ...")
 		#	return
-		Window.DrawProgressBar(0.5, "YafaRay objects ...")
-		self.exportObjects()
-		Window.DrawProgressBar(0.9, "YafaRay world ...")
+#		Window.DrawProgressBar(0.5, "YafaRay objects ...")
+#		self.exportObjects()
+#		Window.DrawProgressBar(0.9, "YafaRay world ...")
 		self.exportWorld()
 		self.writeRender(renderCoords)
 		Window.DrawProgressBar(0.0, "YafaRay rendering ...")
