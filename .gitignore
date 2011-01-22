@@ -1,0 +1,6 @@
+*.so
+*.pyc
+*yafqt.py
+*yafrayinterface.py*
+*~*
+*#*

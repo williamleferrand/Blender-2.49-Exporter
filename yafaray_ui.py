@@ -1,14 +1,14 @@
 #!BPY
 
 """
-Name: 'YafaRay Export 0.1.2'
+Name: 'YafaRay/Corefarm Export 0.1.2'
 Blender: 249
 Group: 'Render'
 Tooltip: 'YafaRay Export'
 """
 
-__author__ = ['Bert Buchholz, Alvaro Luna, Michele Castigliego, Rodrigo Placencia']
-__version__ = '0.1.2-Beta2'
+__author__ = ['Bert Buchholz, Alvaro Luna, Michele Castigliego, Rodrigo Placencia, William Le Ferrand']
+__version__ = '0.1.2-Beta2-corefarm'
 __url__ = ['http://yafaray.org']
 __bpydoc__ = ""
 
@@ -90,17 +90,76 @@ if haveQt:
 import string
 import math
 
+import logging
+import pickle
+import os.path
+
 import yaf_export
 from yaf_export import yafrayRender
 import yafrayinterface
 
 from Blender import *
 
+DEBUG = False
+HOME = os.environ.get('HOME', None)
+
+if DEBUG and HOME is not None:
+	logging.basicConfig(
+		filename = os.path.join(HOME, 'yafaray-export.log'),
+		level = logging.DEBUG,
+		format = '%(asctime)s %(process)s/%(thread)s %(levelname)s %(name)s %(filename)s:%(lineno)s %(message)s',
+	)
+log = logging.getLogger('yafaray.export')
+
 yaf_export.haveQt = haveQt
 
 yRender = yafrayRender()
 yInterface = yafrayinterface.yafrayInterface_t()
 yInterface.loadPlugins(dllPath)
+
+
+
+class Settings(object):
+	""" A dict-like object which automatically
+		saves all content to the Blender's Registry.
+	"""
+	def __init__(self, key_name = 'YafaRay'):
+		self._data_filename = os.path.join(Blender.Get('datadir'), key_name + '.dat')
+		self._load()
+
+	def __getitem__(self, key):
+		return self._data.get(key, None)
+
+	def __setitem__(self, key, value):
+		self._data[key] = value
+		self._save()
+
+	def get(self, key, default = None):
+		return self._data.get(key, default)
+
+	def update(self, item_tuples):
+		""" Batch update of the values in the dict.
+		"""
+		for key, value in item_tuples:
+			self._data[key] = value
+		self._save()
+	# Fd are not correcly handled 
+	def _load(self):
+		try:
+			f = open(self._data_filename) 
+			self._data = pickle.load(f)
+			f.close () 
+		except:
+			log.exception("Can't load settings from %r" % self._data_filename)
+			self._data = {}
+
+	def _save(self):
+		try:
+			f = open(self._data_filename, 'w')
+			pickle.dump(self._data, f)
+			f.close () 
+		except:
+			log.exception("Can't save settings to %r" % self._data_filename)
 
 #####################################
 #
@@ -140,11 +199,11 @@ def drawSepLine(x, y, width):
 	y -= 25
 	return y
 
-def drawSepLineText(x, y, width, text):
+def drawSepLineText(x, y, width, text, size = "small"):
 	y -= 15
-	drawText(x, y - 3, text)
-	width = width - 5 - Draw.GetStringWidth(text, "small")
-	drawHLine(x + Draw.GetStringWidth(text, "small") + 5, y, width)
+	drawText(x, y - 3, text, size)
+	width = width - 5 - Draw.GetStringWidth(text, size)
+	drawHLine(x + Draw.GetStringWidth(text, size) + 5, y, width)
 	y -= 25
 	return y
 
@@ -2559,6 +2618,76 @@ class clTabObject:
 # ### end classTabObject ### #
 
 
+# ### tab corefarm settings ### #
+
+
+class clTabFarmSettings:
+	def __init__(self):
+		# events
+		self.evShow = getUniqueValue()
+		self.evEdit = getUniqueValue()
+		self.tabNum = getUniqueValue()
+		self.OutputMethodTypes = ["TGA", "EXR"]
+		self.settings = s = Settings("YafaRay.corefarm")
+		
+		# gui elements
+		self.guiLogin = Draw.Create(s.get("login", "")) # string
+		self.guiKey = Draw.Create(s.get("key", "")) # string
+		self.guiRenderOutputMethod = Draw.Create(s.get("output_method", 0)) # dropdown
+	#	self.guiGHZ = Draw.Create(s.get("ghz", 50)) # string
+
+	def draw(self, height):
+		global PanelHeight
+
+		drawText(10, height, "Corefarm settings", "large")
+		height -= 5
+		height = drawSepLineText(10, height, 320, "Credentials")
+		height -= 5 
+		
+		if self.settings.get("login") == None or self.settings.get("login") == "" or self.settings.get("key") == None: 
+			drawText (10, height, "Visit www.corefarm.com to sign up or enter your credentials below"); 
+			height -= 25
+		
+		self.guiLogin = Draw.String("Login: ", self.evEdit, 10, height, 300,
+			guiWidgetHeight, self.guiLogin.val, 50, "Your login at corefarm.com")
+		
+		height -= 30 
+		self.guiKey = Draw.String("Private Key: ", self.evEdit, 10, height, 300,
+			guiWidgetHeight, self.guiKey.val, 50, "Your key at corefarm.com")
+
+		height -= 20 
+		drawText (10, height, "Login is your corefarm login, and the private key must be generated")
+		height -= 15
+		drawText (10, height, "from your manager on www.corefarm.com.")
+		height -= 5
+	
+		height = drawSepLineText(10, height, 320, "Static images format")
+		drawText(10, height, "Select the output format for static images:", "normal")
+		self.guiRenderOutputMethod = Draw.Menu(makeMenu("Output fileformat", self.OutputMethodTypes),
+						       self.evEdit, 
+						       245, 
+						       height-2, 
+						       75, 
+						       guiWidgetHeight, 
+						       self.guiRenderOutputMethod.val, 
+						       "Selects output fileformat")
+
+
+		PanelHeight = height
+
+	def event(self):
+		log.debug('Saving settings')
+		items = (
+			('login', self.guiLogin.val),
+			('key', self.guiKey.val),
+			('output_method', self.guiRenderOutputMethod.val)
+		)
+		self.settings.update(items)
+
+# ### end clTabFarmSettings ### #
+
+
+
 
 def event(evt, val):	# the function to handle input events
 	global lastMousePosX, lastMousePosY, guiDrawOffset, middlePressed, currentSelection, PanelHeight
@@ -2653,6 +2782,11 @@ def button_event(evt):  # the function to handle Draw Button events
 			result = Draw.PupMenu(popupMsg)
 			if result == 0:
 				yRender.renderAnim()
+				
+	elif evt == TabFarmSettings.evShow:
+		Tab = TabFarmSettings.tabNum
+	elif evt == TabFarmSettings.evEdit:
+		TabFarmSettings.event()
 	elif evt == TabObject.evShow:
 		Tab = TabObject.tabNum
 	elif evt == TabObject.evObjEdit:
@@ -2772,13 +2906,36 @@ def gui():				# the function to draw the screen
 	BGL.glColor3f(1,1,1)
 
 	largeButtonHeight = int(guiWidgetHeight * 1.5)
+
 	height = size[1] - 25 + guiDrawOffset
-	height -= 10
+   
+	BGL.glColor3f(0, 0, 0)
+	drawText (50, height, "Corefarm Powered Yafaray 0.1.2", "large")
+	height -= 20
+
+	# Render locally 
+	height = drawSepLineText(10, height, 320, "Render locally", "normal")
+	height -= 20
+	
 	Draw.PushButton("R E N D E R", evRender, 10, height, 130, largeButtonHeight, "Render image")
 	Draw.PushButton("Render anim", evRenderAnim, 150, height, 85, largeButtonHeight, "Render animation into Blender output dir")
 	Draw.PushButton("Render view", evRenderView, 245, height, 85, largeButtonHeight, "Render current 3D view")
+	height -= 10
 
-	BGL.glColor3f(0, 0, 0)
+	# Render in the cloud 
+	height = drawSepLineText(10, height, 320, "Render on the Corefarm", "normal")
+	height -= 20
+	Draw.PushButton("R E N D E R", evRender, 10, height, 130, largeButtonHeight, "Render image")
+	height -= 20		
+	drawText (10, height, "Corefarm is a rendering farm in the cloud, capable of speeding up your"); 
+	height -= 15 
+	drawText (10, height, "Yafaray renders by a 100x factor. Checkout www.corefarm.com for"); 
+	height -= 15 
+	drawText (10, height, "more details");  
+	height -= 20 
+
+
+	# Yafaray Settings 
 	height = drawSepLineText(10, height, 320, "YafaRay Settings")
 	height -= 10
 	Draw.PushButton("Objects", TabObject.evShow, 10, height, 74, largeButtonHeight, "Edit object properties")
@@ -2788,10 +2945,17 @@ def gui():				# the function to draw the screen
 
 	#height += guiHeightOffset
 	#Draw.PushButton("Help", evShowHelp, 240, height, 90, guiWidgetHeight, "Short help")
-
+	
+	# Corefarm Settings 
+	height = drawSepLineText(10, height, 320, "Corefarm Settings")
+	height -= 10
+	Draw.PushButton("Farm settings", TabFarmSettings.evShow, 10, height, 90, largeButtonHeight, "Set credentials")
+	drawText (120, height+5, "visit www.corefarm.com for more information"); 
 	height -= 10
 	drawHLine(10, height, 320)
-	height -= 20
+	height -= 5
+	drawHLine(10, height, 320)
+	height -= 30
 
 	if Tab == TabObject.tabNum: # settings for objects
 		TabObject.draw(height)
@@ -2801,10 +2965,12 @@ def gui():				# the function to draw the screen
 		TabWorld.draw(height)
 	elif Tab == TabRenderer.tabNum: # settings for renderer
 		TabRenderer.draw(height)
+	elif Tab == TabFarmSettings.tabNum: # settings for corefarm
+		TabFarmSettings.draw(height)
 	elif Tab == helpTab:
 		drawHelp(height)
-	else:
-		drawText(10, height, "Select a tab from above.", "large")
+	#else:
+		#drawText(10, height, "Select a tab from above.", "large")
 
 
 # "main" program
@@ -2824,7 +2990,7 @@ def main():
 	global guiHeightOffset, guiWidgetHeight, guiDrawOffset, lastMousePosX,\
 	lastMousePosY, middlePressed, currentSelection,\
 	Tab, noTab, helpTab, evShowHelp, evRenderView, evRender, evRenderAnim,\
-	TabMaterial, TabWorld, TabRenderer, TabObject, uniqueCounter, libmat, PanelHeight
+	TabMaterial, TabWorld, TabRenderer, TabObject, TabFarmSettings, uniqueCounter, libmat, PanelHeight
 
 	PanelHeight = 100
 	libmat = False
@@ -2850,7 +3016,8 @@ def main():
 	TabWorld = clTabWorld()
 	TabRenderer = clTabRender()
 	TabObject = clTabObject()
+	TabFarmSettings = clTabFarmSettings()
 	Draw.Register(gui, event, button_event)  # registering the 3 callbacks
 
 if __name__ == "__main__":
-    main()
+    main() 
