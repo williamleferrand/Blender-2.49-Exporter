@@ -20,11 +20,13 @@ class PutRequest(urllib2.Request):
 
 
 DEBUG_HTTP = False
-COREFARM_API = 'http://gateway.corefarm.com/'
-S3_HOST = 'http://corefarm-data.s3.amazonaws.com/'
+COREFARM_API = 'http://localhost/' #'http://gateway.corefarm.com/'
+S3_HOST = 'http://corefarm2.s3.amazonaws.com/'
 USER_AGENT = 'Blender-Yafaray-Exporter/1.0'
+YFVERSION = '0.1.2'
 
 S3_MIN_CHUNK_SIZE = 5 * 1024 * 1024 # 5 megabytes
+
 S3_MAX_CHUNK_COUNT = 1024
 S3_NUM_RETRIES = 3
 
@@ -78,9 +80,9 @@ class StaticFarm(object):
 		parameters = self._sign(
 			method,
 			dict(
-				application = kind, 
-				date = str(int(time.time())),
-				isconfidential = 'true',
+				kind = kind,
+				version = YFVERSION, 
+				timestamp = str(int(time.time())),	
 			)
 		)
 		url = '%s%s?%s' % (
@@ -96,21 +98,23 @@ class StaticFarm(object):
 		self._log.debug('Result is: %r' % result)
 		result = simplejson.loads(result)
 
-		if 'msg' in result:
-			if 'forbidden' in result['msg'].lower():
-				raise AccessForbiddenError(result['msg'])
+		if 'status' in result: 
+			if result['status'] == 0: 
+				return result['job_id']
+			elif result['status'] == 2:
+				if 'forbidden' in result ['message'].lower(): 
+					raise AccessForbiddenError(result['msg'])
+				else:
+					raise CoreFarmError(result['msg'])
 			else:
-				raise CoreFarmError(result['msg'])
-		elif 'id' in result:
-			return result['id']
-		else:
-			raise RuntimeError('Unknown result from the server')
+				raise RuntimeError('Unknown result from the server')
 
 
 # UPLOAD MECHANISM 
 	def _upload_part(self, data, part_number, key, upload_id):
 		for attempt in xrange(S3_NUM_RETRIES):
 			try:
+				self._log.debug('Requesting the signature')
 				request = urllib2.Request(
 					COREFARM_API + 'request_signature?' + urllib.urlencode(dict(
 							method = 'put',
@@ -121,7 +125,7 @@ class StaticFarm(object):
 					headers = self.HEADERS
 				)
 				signature = opener.open(request).read()
-
+				self._log.debug('Signature is %s' % signature)
 				request = PutRequest(
 					S3_HOST + key + '?' + urllib.urlencode(dict(
 						partNumber = str(part_number),
@@ -133,6 +137,7 @@ class StaticFarm(object):
 					})
 				)
 				result = opener.open(request)
+				self._log.debug('S3 result is %s' % result)
 				return result.headers['etag']
 			except (urllib2.URLError, urllib2.HTTPError), e:
 				pass
@@ -158,9 +163,9 @@ class StaticFarm(object):
 		)
 		result = opener.open(request).read()
 		json = simplejson.loads(result)
-		if json['status'] != 1:
+		if json['status'] != 0:
 			raise RuntimeError(result)
-		upload_id = json['msg']
+		upload_id = json['upload_id']
 		etags = {}
 
 		with open(filename, 'rb') as file:
@@ -177,7 +182,7 @@ class StaticFarm(object):
 			while data:
 				self._log.debug('UPLOADING PART %s' % part_number)
 				etags[part_number] = self._upload_part(data, part_number, key, upload_id)
-
+				
 				#Blender.Window.DrawProgressBar(num_parts / part_number, "Uploading the data ...")
 				data = file.read(chunk_size)
 				part_number += 1

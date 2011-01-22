@@ -2821,8 +2821,7 @@ def button_event(evt):  # the function to handle Draw Button events
 		
 		try:
 			# First, we get the job_id
-			job_id = farm.get_new_job('yafaray')
-
+			job_id = farm.get_new_job('yafaray_static')
 			# Second we generate the XML light job, we replace all the textures by flat names and we upload them 
 			## __light__ export
 			yinterface = yafrayinterface.xmlInterface_t()
@@ -2830,6 +2829,7 @@ def button_event(evt):  # the function to handle Draw Button events
 			yRenderCorefarm.setInterface(yinterface)
 			output_light = yRenderCorefarm.render(farm, job_id)
 			Window.DrawProgressBar(0.5, "Scene summary ready")
+			
 			farm.upload (job_id, output_light, True)
 			
 			## full export
@@ -2848,8 +2848,9 @@ def button_event(evt):  # the function to handle Draw Button events
 			Blender.Draw.PupMenu(unicode("Please specify your corefarm credentials or register on www.corefarm.com"))
 			button_event(TabFarmSettings.evShow)
 		except urllib2.HTTPError, e:
-			Blender.Draw.PupMenu('Service is unavailable, please, try later.')
+			Blender.Draw.PupMenu('Service is unavailable')
 		except IOError, e:
+			Blender.Draw.PupMenu('IOError')
 			Blender.Window.DrawProgressBar(1.0, "Done with warning")
 			if e.errno == 'socket error':
 				Blender.Draw.PupMenu('Service is unavailable, please try later.')
@@ -2862,6 +2863,8 @@ def button_event(evt):  # the function to handle Draw Button events
 				""" Reraise exception to handle it in the event loop.
 				"""
 				raise
+		except RuntimeError, e: 
+			Blender.Draw.PupMenu(unicode(e))
 		except Exception:
 			Blender.Window.DrawProgressBar(1.0, "Done with error")
 
@@ -2898,7 +2901,7 @@ def button_event(evt):  # the function to handle Draw Button events
 				  TabFarmSettings.guiRenderOutputMethod.val)
 		
 		try:
-			job_id = farm.get_new_job('yafaray') 
+			job_id = farm.get_new_job('yafaray_animation') 
 		## __light__ export
 			yinterface = yafrayinterface.xmlInterface_t()
 			yinterface.loadPlugins(dllPath)
