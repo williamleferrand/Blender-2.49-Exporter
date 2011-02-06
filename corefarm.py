@@ -20,7 +20,8 @@ class PutRequest(urllib2.Request):
 
 
 DEBUG_HTTP = False
-COREFARM_API = 'http://localhost/' #'http://gateway.corefarm.com/'
+#COREFARM_API = 'http://lb.corefarm.com/' #'http://gateway.corefarm.com/'
+COREFARM_API = 'http://localhost/' 
 S3_HOST = 'http://corefarm2.s3.amazonaws.com/'
 USER_AGENT = 'Blender-Yafaray-Exporter/1.0'
 YFVERSION = '0.1.2'
@@ -101,11 +102,10 @@ class StaticFarm(object):
 		if 'status' in result: 
 			if result['status'] == 0: 
 				return result['job_id']
+			elif result['status'] == 3:
+				raise AccessForbiddenError(result['msg'])
 			elif result['status'] == 2:
-				if 'forbidden' in result ['message'].lower(): 
-					raise AccessForbiddenError(result['msg'])
-				else:
-					raise CoreFarmError(result['msg'])
+				raise CoreFarmError(result['msg'])
 			else:
 				raise RuntimeError('Unknown result from the server')
 
@@ -156,16 +156,18 @@ class StaticFarm(object):
 			f_out.close()
 			f_in.close()
 
-		key = '%s/%s' % (job_id, os.path.basename(filename))
+		key = '%s/input/%s' % (job_id, os.path.basename(filename))
 		request = urllib2.Request(
 			COREFARM_API + 'initiate_multipart?' + urllib.urlencode(dict(key=key)),
 			headers = self.HEADERS,
 		)
 		result = opener.open(request).read()
 		json = simplejson.loads(result)
-		if json['status'] != 0:
+		if json['status'] != 1:
 			raise RuntimeError(result)
+		
 		upload_id = json['upload_id']
+		
 		etags = {}
 
 		with open(filename, 'rb') as file:
@@ -197,7 +199,6 @@ class StaticFarm(object):
 		for item in etags.iteritems():
 		  data += '<Part><PartNumber>%s</PartNumber><ETag>%s</ETag></Part>' % item
 		data += '</CompleteMultipartUpload>'
-
 		request = urllib2.Request(
 			COREFARM_API + 'request_signature?' + urllib.urlencode(dict(
 					method = 'post',
@@ -208,7 +209,6 @@ class StaticFarm(object):
 			headers = self.HEADERS,
 		)
 		signature = opener.open(request).read()
-
 		request = urllib2.Request(
 			S3_HOST + key + '?' + urllib.urlencode(dict(
 				uploadId = str(upload_id),
@@ -256,6 +256,6 @@ class StaticFarm(object):
 			if result['status'] == 0:
 				return ; # Blender.Draw.PupMenu('Your job is now running. You can track its status from your manager on www.corefarm.com; you will also receive an email when it is completed. Thanks!')
 			else:
-				raise CoreFarmError(result['message'])
+				raise CoreFarmError(result['msg'])
 		else:
 			raise RuntimeError('Unknown result from the server')

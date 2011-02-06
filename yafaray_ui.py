@@ -1,5 +1,7 @@
 #!BPY
 
+# This one rewrites the filesnames 
+
 """
 Name: 'YafaRay/Corefarm Export 0.1.2'
 Blender: 249
@@ -96,6 +98,7 @@ import os.path
 import urllib2
 
 import yaf_export
+import yaf_export_xml
 import yaf_export_corefarm
 from yaf_export import yafrayRender
 from corefarm import StaticFarm, AccessForbiddenError, CoreFarmError
@@ -117,6 +120,7 @@ log = logging.getLogger('yafaray.export')
 yaf_export.haveQt = haveQt
 
 yRender = yafrayRender()
+yRenderXml = yaf_export_xml.yafrayRender () 
 yRenderCorefarm = yaf_export_corefarm.yafrayRender ()
 
 yInterface = yafrayinterface.yafrayInterface_t()
@@ -2632,12 +2636,15 @@ class clTabFarmSettings:
 		self.evShow = getUniqueValue()
 		self.evEdit = getUniqueValue()
 		self.tabNum = getUniqueValue()
-		self.OutputMethodTypes = ["TGA", "EXR"]
+		self.OutputMethodTypes = ["TGA", "EXR", "HDR", "JPG", "PNG", "TIF"]
 		self.settings = s = Settings("YafaRay.corefarm")
 		
 		# gui elements
+		self.key_val = ""; 
 		self.guiLogin = Draw.Create(s.get("login", "")) # string
 		self.guiKey = Draw.Create(s.get("key", "")) # string
+		self.key_val = s.get ("key", ""); 
+		self.guiKey = Draw.Create("X" * (len(self.key_val))) # string
 		self.guiRenderOutputMethod = Draw.Create(s.get("output_method", 0)) # dropdown
 	#	self.guiGHZ = Draw.Create(s.get("ghz", 50)) # string
 
@@ -2657,13 +2664,11 @@ class clTabFarmSettings:
 			guiWidgetHeight, self.guiLogin.val, 50, "Your login at corefarm.com")
 		
 		height -= 30 
-		self.guiKey = Draw.String("Private Key: ", self.evEdit, 10, height, 300,
-			guiWidgetHeight, self.guiKey.val, 50, "Your key at corefarm.com")
+		self.guiKey = Draw.String("Password: ", self.evEdit, 10, height, 300,
+			guiWidgetHeight, self.guiKey.val, 50, "Your password at corefarm.com")
 
 		height -= 20 
-		drawText (10, height, "Login is your corefarm login, and the private key must be generated")
-		height -= 15
-		drawText (10, height, "from your manager on www.corefarm.com.")
+		drawText (10, height, "Login and password are those created from www.corefarm.com")
 		height -= 5
 	
 		height = drawSepLineText(10, height, 320, "Static images format")
@@ -2688,6 +2693,8 @@ class clTabFarmSettings:
 			('output_method', self.guiRenderOutputMethod.val)
 		)
 		self.settings.update(items)
+		self.key_val = self.guiKey.val 
+		self.guiKey.val = "X" * (len (self.guiKey.val)) 
 
 # ### end clTabFarmSettings ### #
 
@@ -2816,7 +2823,7 @@ def button_event(evt):  # the function to handle Draw Button events
 		
 		## now we sync with the corefarm
 		farm = StaticFarm(TabFarmSettings.guiLogin.val,
-				  TabFarmSettings.guiKey.val,
+				  TabFarmSettings.key_val,
 				  TabFarmSettings.guiRenderOutputMethod.val)
 		
 		try:
@@ -2835,8 +2842,8 @@ def button_event(evt):  # the function to handle Draw Button events
 			## full export
 			yinterface = yafrayinterface.xmlInterface_t()
 			yinterface.loadPlugins(dllPath)
-	 		yRender.setInterface (yinterface)
-			output = yRender.render () ;
+	 		yRenderXml.setInterface (yinterface)
+			output = yRenderXml.render (job_id) ;
 			Window.DrawProgressBar(0.6, "Scene export ready")
 			farm.upload (job_id, output, True)
 			Window.DrawProgressBar(1.0, "Scene uploaded")
@@ -2851,12 +2858,8 @@ def button_event(evt):  # the function to handle Draw Button events
 		except urllib2.HTTPError, e:
 			Blender.Draw.PupMenu('Corefarm Error|Service is unavailable')
 		except IOError, e:
-			Blender.Draw.PupMenu('IOError')
-			Blender.Window.DrawProgressBar(1.0, "Done with warning")
-			if e.errno == 'socket error':
-				Blender.Draw.PupMenu('Service is unavailable, please try later.')
-			else:
-				raise
+			Blender.Window.DrawProgressBar(1.0, "Failed")
+			Blender.Draw.PupMenu('Service is unavailable, please try later.')
 		except CoreFarmError, e:
 			Blender.Draw.PupMenu(unicode(e))
 			Blender.Window.DrawProgressBar(1.0, "Done with warning")
@@ -2865,7 +2868,7 @@ def button_event(evt):  # the function to handle Draw Button events
 				"""
 				raise
 		except RuntimeError, e: 
-			Blender.Draw.PupMenu(unicode(e))
+			Blender.Draw.PupMenu(unicode(e))		
 		except Exception, e:
 			Blender.Draw.PupMenu("Exception!")
 			Blender.Window.DrawProgressBar(1.0, "Done with error")
@@ -2899,7 +2902,7 @@ def button_event(evt):  # the function to handle Draw Button events
 		
 		## now we sync with the corefarm
 		farm = StaticFarm(TabFarmSettings.guiLogin.val,
-				  TabFarmSettings.guiKey.val,
+				  TabFarmSettings.key_val,
 				  TabFarmSettings.guiRenderOutputMethod.val)
 		
 		try:
@@ -2931,11 +2934,7 @@ def button_event(evt):  # the function to handle Draw Button events
 		except urllib2.HTTPError, e:
 			Blender.Draw.PupMenu('Service is unavailable, please, try later.')
 		except IOError, e:
-			Blender.Window.DrawProgressBar(1.0, "Done with warning")
-			if e.errno == 'socket error':
-				Blender.Draw.PupMenu('Corefarm Error|Service is unavailable, please try later.')
-			else:
-				raise
+			Blender.Draw.PupMenu('Corefarm Error|Service is unavailable, please try later.')
 		except CoreFarmError, e:
 			Blender.Draw.PupMenu(unicode(e))
 			Blender.Window.DrawProgressBar(1.0, "Done with warning")
