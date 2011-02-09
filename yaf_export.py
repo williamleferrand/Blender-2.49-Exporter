@@ -532,6 +532,7 @@ class yafrayRender:
 			self.yi.printInfo("Exporter: Adding World Texture: \"" + worldTex.name + "\" " + img.getFilename())
 			# now always exports if image used as world texture (and 'Hori' mapping enabled)
 			# duplicated code, ideally export texture like any other
+			#
 			if worldTex.type == Blender.Texture.Types.IMAGE and img != None:
 				yi.paramsSetString("type", "image")
 				yi.paramsSetString("filename", Blender.sys.expandpath(img.getFilename()) )

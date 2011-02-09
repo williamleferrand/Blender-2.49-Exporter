@@ -196,9 +196,13 @@ class yafTexture:
 				# remember image to avoid duplicates later if also in imagetex
 				# (formerly done by removing from imagetex, but need image/material link)
 				#	dupimg.insert(ima);
-				key = '%s/input/%s' % (job_id, os.path.basename(imagefile))
+			
+				bname = re.sub("\s+", "", os.path.basename(imagefile))	
+				key = '%s/input/%s' % (job_id, bname)
+				
 				yi.paramsSetString("type", "image")
-				yi.paramsSetString("filename", key)
+				yi.paramsSetString("filename", str (key))
+				
 			#	yG->paramsSetString("interpolate", (tex->imaflag & TEX_INTERPOL) ? "bilinear" : "none");
 				yi.paramsSetFloat("gamma", gamma)
 				yi.paramsSetBool("use_alpha", tex.useAlpha > 0)

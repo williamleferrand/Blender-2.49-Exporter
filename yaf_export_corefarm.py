@@ -18,6 +18,7 @@ from yaf_light import yafLight
 from yaf_object import yafObject
 
 import Blender
+import re
 from Blender import *
 from Blender.Scene import *
 from Blender import Mathutils
@@ -533,8 +534,11 @@ class yafrayRender:
 			# duplicated code, ideally export texture like any other
 			if worldTex.type == Blender.Texture.Types.IMAGE and img != None:
 				yi.paramsSetString("type", "image")
-				path = Blender.sys.expandpath(img.getFilename()) 
-				yi.paramsSetString("filename", path )
+				
+				bname = re.sub("\s+", "", os.path.basename(img.getFilename())); 
+				key = '%s/input/%s' % (job_id, bname) 
+				
+				yi.paramsSetString("filename", str(key) )
 				
 				# WE HAVE TO UPLOAD THIS FILE
 				farm.upload (job_id, path); 
@@ -908,7 +912,7 @@ class yafrayRender:
 		self.viewRender = False
 		#Window.DrawProgressBar(0.0, "Rendering animation ...")
 		i = startFrame 
-
+		
 		#for i in range(startFrame, endFrame + 1):
 			#Window.DrawProgressBar(i/(1 + endFrame - startFrame), "Rendering frame "+str(i))
 		self.yi.printInfo("Exporter: Rendering frame " + str(i))
@@ -916,6 +920,7 @@ class yafrayRender:
 		self.yi.clearAll()
 		renderCoords = self.getRenderCoords()
 		output = [oc, outputfile ] = self.startScene(renderCoords, i)
+		Blender.Draw.PupMenu('About to collect')
 		self.collectObjects()
 		self.exportTextures(farm, job_id)
 		self.exportMaterials()
@@ -925,6 +930,7 @@ class yafrayRender:
 			#	return
 		#self.exportObjects()
 		self.writeRender(renderCoords)
+		self.startRender(renderCoords, output, i)
 		return outputfile
 		
 				

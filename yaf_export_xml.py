@@ -18,6 +18,7 @@ from yaf_light import yafLight
 from yaf_object import yafObject
 
 import Blender
+import re
 from Blender import *
 from Blender.Scene import *
 from Blender import Mathutils
@@ -534,8 +535,10 @@ class yafrayRender:
 			# duplicated code, ideally export texture like any other
 			if worldTex.type == Blender.Texture.Types.IMAGE and img != None:
 				yi.paramsSetString("type", "image")
-				key = '%s/input/%s' % (job_id, os.path.basename(img.getFilename())) 
-				yi.paramsSetString("filename", key) 
+				bname = re.sub("\s+", "", os.path.basename(img.getFilename()))	
+				key = '%s/input/%s' % (job_id, bname) 
+				Blender.Draw.PupMenu('in yaf_export_xml : ' + key)
+				yi.paramsSetString("filename", str(key)) 
 				# exposure_adjust not restricted to integer range anymore
 				yi.paramsSetFloat("exposure_adjust", worldTex.brightness-1);
 				if worldTex.interpol == Blender.Texture.ImageFlags.INTERPOL:

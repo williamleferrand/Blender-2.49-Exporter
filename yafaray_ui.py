@@ -102,6 +102,7 @@ import yaf_export_xml
 import yaf_export_corefarm
 from yaf_export import yafrayRender
 from corefarm import StaticFarm, AccessForbiddenError, CoreFarmError
+from yaf_texture_corefarm import MissingTexture
 import yafrayinterface
 
 from Blender import *
@@ -1503,6 +1504,8 @@ class clTabRender:
 		self.guiRenderShowSampleMask = Draw.Create(0) # toggle
 		self.guiRenderTileSize = Draw.Create(0) # umberbox
 		self.guiRenderOutputMethod = Draw.Create(0) # dropdown
+		self.guiRenderOutputMethodAnimationFps = Draw.Create(0) # dropdown
+		self.guiRenderOutputMethodAnimationBitrate = Draw.Create(0) # dropdown
 		self.guiRenderOutputFileType = Draw.Create(0) # dropdown
 		self.guiRenderTileOrder = Draw.Create(1) # dropdown
 		self.guiRenderClayRender = Draw.Create(0) # toggle
@@ -2682,19 +2685,29 @@ class clTabFarmSettings:
 						       self.guiRenderOutputMethod.val, 
 						       "Selects output fileformat")
 
+		height -= 5
+		height = drawSepLineText(10, height, 320, "Animation parameters")
+		drawText(10, height, "Select the animation parameters", "normal")
+		height -= 25
+		self.guiRenderOutputMethodAnimationFps = Draw.String("Fps: ", self.evEdit, 10, height, 300,
+								     guiWidgetHeight, "25", 50, "Fps") ;
+		height -= 30
+		self.guiRenderOutputMethodAnimationBitrate = Draw.String("Bitrate: ", self.evEdit, 10, height, 300,
+								     guiWidgetHeight, "200", 50, "Bitrate") ;
 
 		PanelHeight = height
 
 	def event(self):
 		log.debug('Saving settings')
-		items = (
-			('login', self.guiLogin.val),
-			('key', self.guiKey.val),
-			('output_method', self.guiRenderOutputMethod.val)
-		)
-		self.settings.update(items)
-		self.key_val = self.guiKey.val 
-		self.guiKey.val = "X" * (len (self.guiKey.val)) 
+		if len(self.guiKey.val.strip ('X')) > 0: 
+			items = (
+				('login', self.guiLogin.val),
+				('key', self.guiKey.val),
+				('output_method', self.guiRenderOutputMethod.val)
+				)
+			self.settings.update(items)
+			self.key_val = self.guiKey.val 
+			self.guiKey.val = "X" * (len (self.guiKey.val)) 
 
 # ### end clTabFarmSettings ### #
 
@@ -2820,7 +2833,6 @@ def button_event(evt):  # the function to handle Draw Button events
 		
 		Window.DrawProgressBar(0.0, "Aggregating the scene components")
 
-		
 		## now we sync with the corefarm
 		farm = StaticFarm(TabFarmSettings.guiLogin.val,
 				  TabFarmSettings.key_val,
@@ -2829,6 +2841,7 @@ def button_event(evt):  # the function to handle Draw Button events
 		try:
 			# First, we get the job_id
 			job_id = farm.get_new_job('yafaray_static')
+			Blender.Draw.PupMenu('Corefarm Message|Blender might look frozen during the job upload process. This is normal, be patient! Thanks, and click on this message to start uploading')
 			# Second we generate the XML light job, we replace all the textures by flat names and we upload them 
 			## __light__ export
 			yinterface = yafrayinterface.xmlInterface_t()
@@ -2848,7 +2861,7 @@ def button_event(evt):  # the function to handle Draw Button events
 			farm.upload (job_id, output, True)
 			Window.DrawProgressBar(1.0, "Scene uploaded")
 			## Debug message
-			farm.start_job (job_id); 
+			farm.start_job (job_id, TabFarmSettings.guiRenderOutputMethod.val); 
 			Blender.Draw.PupMenu(unicode("Corefarm success|Job has been dispatched on the corefarm; you can check its status from your manager on www.corefarm.com. Thanks!"))
 			## Tons of error handling has to be done here 
 
@@ -2867,6 +2880,8 @@ def button_event(evt):  # the function to handle Draw Button events
 				""" Reraise exception to handle it in the event loop.
 				"""
 				raise
+		except MissingTexture:
+			pass
 		except RuntimeError, e: 
 			Blender.Draw.PupMenu(unicode(e))		
 		except Exception, e:
@@ -2908,11 +2923,13 @@ def button_event(evt):  # the function to handle Draw Button events
 		try:
 			job_id = farm.get_new_job('yafaray_animation') 
 		## __light__ export
+			Blender.Draw.PupMenu('Corefarm Message|Blender might look frozen during the job upload process. This is normal, be patient! Thanks, and click on this message to start uploading')
 			yinterface = yafrayinterface.xmlInterface_t()
 			yinterface.loadPlugins(dllPath)
 			yRenderCorefarm.setInterface(yinterface)
 			output_light=yRenderCorefarm.renderAnim(farm, job_id)
 			Window.DrawProgressBar(0.5, "Scene summary ready")
+			Blender.Draw.PupMenu(output_light)
 			farm.upload (job_id, output_light, True)
 		
 		## full export, scene after scene 
@@ -2923,8 +2940,8 @@ def button_event(evt):  # the function to handle Draw Button events
 			Window.DrawProgressBar(0.5, "Uploading each scene")
 			for file in outputs: 
 				farm.upload (job_id, file, True)
-			
-			farm.start_job (job_id); 
+			custom = TabFarmSettings.guiRenderOutputMethodAnimationFps.val + ' ' + TabFarmSettings.guiRenderOutputMethodAnimationBitrate.val
+			farm.start_job (job_id, custom); 
 			Window.DrawProgressBar(1.0, "Scene uploaded")
 			Blender.Draw.PupMenu(unicode("Corefarm success|Job has been dispatched on the corefarm; you can check its status from your manager on www.corefarm.com. Thanks!"))
 			

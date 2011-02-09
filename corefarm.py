@@ -21,8 +21,8 @@ class PutRequest(urllib2.Request):
 
 DEBUG_HTTP = False
 #COREFARM_API = 'http://lb.corefarm.com/' #'http://gateway.corefarm.com/'
-COREFARM_API = 'http://localhost/' 
-S3_HOST = 'http://corefarm2.s3.amazonaws.com/'
+COREFARM_API = 'http://lb.corefarm.com/' 
+S3_HOST = 'http://corefarm-data.s3.amazonaws.com/'
 USER_AGENT = 'Blender-Yafaray-Exporter/1.0'
 YFVERSION = '0.1.2'
 
@@ -156,7 +156,10 @@ class StaticFarm(object):
 			f_out.close()
 			f_in.close()
 
-		key = '%s/input/%s' % (job_id, os.path.basename(filename))
+		# WE have to remove spaces
+		
+		bname = re.sub("\s+", "", os.path.basename(filename))	
+		key = '%s/input/%s' % (job_id, bname)
 		request = urllib2.Request(
 			COREFARM_API + 'initiate_multipart?' + urllib.urlencode(dict(key=key)),
 			headers = self.HEADERS,
@@ -224,7 +227,7 @@ class StaticFarm(object):
 			self._log.debug('Response from S3: %r' % result)
 
 
-	def start_job(self, job_id):
+	def start_job(self, job_id, custom):
 		self._log.debug('Starting the job: %s' % job_id)
 		self._log.debug('Job type: %d' % self._output_type)
 		socket.setdefaulttimeout(10)
@@ -233,7 +236,7 @@ class StaticFarm(object):
 			method,
 			dict(
 				id = job_id,
-      				custom = str (self._output_type),
+      				custom = str (custom),
 				timestamp = str(int(time.time()))  
 				)
 			)

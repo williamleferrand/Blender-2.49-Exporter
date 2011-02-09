@@ -1,11 +1,18 @@
 import Blender.Texture
 import re
 import os
+import os.path
 # ------------------------------------------------------------------------
 #
 # Textures
 #
 # ------------------------------------------------------------------------
+
+class MissingTexture(Exception):
+	def __init__(self):
+		return 
+	def __str__(self):
+		return repr(self.value)
 
 def noise2string(ntype):
 	if ntype == Blender.Texture.Noise.BLENDER:			return "blender"
@@ -192,13 +199,21 @@ class yafTexture:
 			if ima != None:
 				# get image full path
 				imagefile = get_image_filename(tex,blenderlib)
+				
+				if (not os.path.isfile(imagefile)):
+					Blender.Draw.PupMenu('Sorry, but '+imagefile+' is missing on your system. Please correct this dependancy and trigger the rendering again') 
+					raise MissingTexture
+		
 				farm.upload (job_id, imagefile)
 				yi.printInfo("Exporter: Creating Texture: \"" + name + "\" type IMAGE: " + imagefile)
 				# remember image to avoid duplicates later if also in imagetex
 				# (formerly done by removing from imagetex, but need image/material link)
 				#	dupimg.insert(ima);
 				yi.paramsSetString("type", "image")
-				yi.paramsSetString("filename", imagefile)
+
+				bname = re.sub("\s+", "", os.path.basename(imagefile))
+				key = '%s/input/%s' % (job_id, bname)
+				yi.paramsSetString("filename", str(key))
 			#	yG->paramsSetString("interpolate", (tex->imaflag & TEX_INTERPOL) ? "bilinear" : "none");
 				yi.paramsSetFloat("gamma", gamma)
 				yi.paramsSetBool("use_alpha", tex.useAlpha > 0)
