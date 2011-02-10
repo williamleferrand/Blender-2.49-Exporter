@@ -541,7 +541,7 @@ class yafrayRender:
 				yi.paramsSetString("filename", str(key) )
 				
 				# WE HAVE TO UPLOAD THIS FILE
-				farm.upload (job_id, path); 
+				farm.upload (job_id, img.getFilename ()); 
 				# exposure_adjust not restricted to integer range anymore
 				yi.paramsSetFloat("exposure_adjust", worldTex.brightness-1);
 				if worldTex.interpol == Blender.Texture.ImageFlags.INTERPOL:
@@ -920,7 +920,7 @@ class yafrayRender:
 		self.yi.clearAll()
 		renderCoords = self.getRenderCoords()
 		output = [oc, outputfile ] = self.startScene(renderCoords, i)
-		Blender.Draw.PupMenu('About to collect')
+	
 		self.collectObjects()
 		self.exportTextures(farm, job_id)
 		self.exportMaterials()

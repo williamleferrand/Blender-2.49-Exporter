@@ -236,7 +236,7 @@ class StaticFarm(object):
 			method,
 			dict(
 				id = job_id,
-      				custom = str (custom),
+      				custom = custom,
 				timestamp = str(int(time.time()))  
 				)
 			)

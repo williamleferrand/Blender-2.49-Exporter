@@ -2649,6 +2649,8 @@ class clTabFarmSettings:
 		self.key_val = s.get ("key", ""); 
 		self.guiKey = Draw.Create("X" * (len(self.key_val))) # string
 		self.guiRenderOutputMethod = Draw.Create(s.get("output_method", 0)) # dropdown
+		self.guiRenderOutputMethodAnimationFps = Draw.Create("25") # dropdown
+		self.guiRenderOutputMethodAnimationBitrate = Draw.Create("1800") # dropdown
 	#	self.guiGHZ = Draw.Create(s.get("ghz", 50)) # string
 
 	def draw(self, height):
@@ -2693,7 +2695,7 @@ class clTabFarmSettings:
 								     guiWidgetHeight, "25", 50, "Fps") ;
 		height -= 30
 		self.guiRenderOutputMethodAnimationBitrate = Draw.String("Bitrate: ", self.evEdit, 10, height, 300,
-								     guiWidgetHeight, "200", 50, "Bitrate") ;
+								     guiWidgetHeight, "1800", 50, "Bitrate") ;
 
 		PanelHeight = height
 
@@ -2861,7 +2863,7 @@ def button_event(evt):  # the function to handle Draw Button events
 			farm.upload (job_id, output, True)
 			Window.DrawProgressBar(1.0, "Scene uploaded")
 			## Debug message
-			farm.start_job (job_id, TabFarmSettings.guiRenderOutputMethod.val); 
+			farm.start_job (job_id, str(TabFarmSettings.guiRenderOutputMethod.val)); 
 			Blender.Draw.PupMenu(unicode("Corefarm success|Job has been dispatched on the corefarm; you can check its status from your manager on www.corefarm.com. Thanks!"))
 			## Tons of error handling has to be done here 
 
@@ -2929,18 +2931,22 @@ def button_event(evt):  # the function to handle Draw Button events
 			yRenderCorefarm.setInterface(yinterface)
 			output_light=yRenderCorefarm.renderAnim(farm, job_id)
 			Window.DrawProgressBar(0.5, "Scene summary ready")
-			Blender.Draw.PupMenu(output_light)
+			
 			farm.upload (job_id, output_light, True)
 		
 		## full export, scene after scene 
 			yinterface = yafrayinterface.xmlInterface_t()
 			yinterface.loadPlugins(dllPath)
-			yRender.setInterface(yinterface)
-			outputs=yRender.renderAnim(False)
-			Window.DrawProgressBar(0.5, "Uploading each scene")
-			for file in outputs: 
+			yRenderXml.setInterface (yinterface)
+			outputs = yRenderXml.renderAnim (job_id, False) ;
+			## outputs=yRender.renderAnim(False)
+			i = 0
+			Window.DrawProgressBar(0.5, "Uploading each frame")
+			for file in outputs:
+				i += 1 
+				Window.DrawProgressBar(0.5, str("Uploading frame " + str(i)) )
 				farm.upload (job_id, file, True)
-			custom = TabFarmSettings.guiRenderOutputMethodAnimationFps.val + ' ' + TabFarmSettings.guiRenderOutputMethodAnimationBitrate.val
+			custom = str (TabFarmSettings.guiRenderOutputMethodAnimationFps.val + ' ' + TabFarmSettings.guiRenderOutputMethodAnimationBitrate.val)
 			farm.start_job (job_id, custom); 
 			Window.DrawProgressBar(1.0, "Scene uploaded")
 			Blender.Draw.PupMenu(unicode("Corefarm success|Job has been dispatched on the corefarm; you can check its status from your manager on www.corefarm.com. Thanks!"))
@@ -3094,7 +3100,7 @@ def gui():				# the function to draw the screen
 	height = size[1] - 25 + guiDrawOffset
    
 	BGL.glColor3f(0, 0, 0)
-	drawText (50, height, "Corefarm Powered Yafaray 0.1.2", "large")
+	drawText (37, height, "Yafaray 0.1.2 powered by Corefarm", "large")
 	height -= 20
 
 	# Render locally 
