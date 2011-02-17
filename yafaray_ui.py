@@ -2639,7 +2639,7 @@ class clTabFarmSettings:
 		self.evShow = getUniqueValue()
 		self.evEdit = getUniqueValue()
 		self.tabNum = getUniqueValue()
-		self.OutputMethodTypes = ["TGA", "EXR", "HDR", "JPG", "PNG", "TIF"]
+		self.OutputMethodTypes = ["TGA", "EXR", "JPG", "PNG", "TIF"]
 		self.settings = s = Settings("YafaRay.corefarm")
 		
 		# gui elements
