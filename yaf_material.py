@@ -307,7 +307,9 @@ class yafMaterial:
 		self.materialMap[mat] = ymat
 
 	def writeShinyDiffuseShader(self, mat):
+		
 		yi = self.yi
+		yi.printInfo("writeShinyDiffuseShader")
 		yi.paramsClearAll()
 		props = mat.properties["YafRay"]
 		yi.paramsSetString("type", "shinydiffusemat")
@@ -377,30 +379,37 @@ class yafMaterial:
 			i +=1
 		
 		yi.paramsEndList()
+	
 		if len(diffRoot) > 0:	yi.paramsSetString("diffuse_shader", diffRoot)
 		if len(mcolRoot) > 0:	yi.paramsSetString("mirror_color_shader", mcolRoot)
 		if len(transpRoot) > 0:	yi.paramsSetString("transparency_shader", transpRoot)
 		if len(translRoot) > 0:	yi.paramsSetString("translucency_shader", translRoot)
 		if len(mirrorRoot) > 0:	yi.paramsSetString("mirror_shader", mirrorRoot)
 		if len(bumpRoot) > 0:	yi.paramsSetString("bump_shader", bumpRoot)
-		
+	
 		yi.paramsSetColor("color", bCol[0], bCol[1], bCol[2])
 		yi.paramsSetFloat("transparency", bTransp)
 		yi.paramsSetFloat("translucency", bTransl)
+	
 		yi.paramsSetFloat("diffuse_reflect", props["diffuse_reflect"])
 		yi.paramsSetFloat("emit", props["emit"])
+	
 		yi.paramsSetFloat("transmit_filter", bTransmit)
 		
 		yi.paramsSetFloat("specular_reflect", bSpecr)
 		yi.paramsSetColor("mirror_color", mirCol[0], mirCol[1], mirCol[2])
+	
+	
 		yi.paramsSetBool("fresnel_effect", props["fresnel_effect"])
+	
 		yi.paramsSetFloat("IOR", props["IOR"])
-
+	
 		if props["brdfType"] == "Oren-Nayar":
 			yi.paramsSetString("diffuse_brdf", "oren_nayar")
 			yi.paramsSetFloat("sigma", props["sigma"])
-		
+	
 		ymat = yi.createMaterial(self.namehash(mat))
+	
 		self.materialMap[mat] = ymat
 
 
@@ -469,6 +478,7 @@ class yafMaterial:
 
 	def writeMaterial(self, mat):
 		self.yi.printInfo("Exporter: Creating Material: \"" + mat.name + "\"")
+		self.yi.printInfo("Exporter: Creating Material type \"" + mat.properties["YafRay"]["type"] + "\"")
 		if mat.name == "y_null":
 			self.writeNullMat(mat)
 		elif mat.properties["YafRay"]["type"] == "glass":

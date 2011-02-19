@@ -105,7 +105,7 @@ class StaticFarm(object):
 			elif result['status'] == 3:
 				raise AccessForbiddenError(result['msg'])
 			elif result['status'] == 2:
-				raise CoreFarmError(result['msg'])
+				raise AccessForbiddenError(result['msg'])
 			else:
 				raise RuntimeError('Unknown result from the server')
 
