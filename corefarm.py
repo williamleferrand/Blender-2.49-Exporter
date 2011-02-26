@@ -41,6 +41,8 @@ opener = urllib2.build_opener(
 )
 
 
+timeout = 3600
+socket.setdefaulttimeout(timeout)
 
 class CoreFarmError(RuntimeWarning): pass
 class AccessForbiddenError(CoreFarmError): pass
