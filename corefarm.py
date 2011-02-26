@@ -93,22 +93,29 @@ class StaticFarm(object):
 		)
 
 		self._log.debug('Fetching the URL: %r' % url)
-		request = urllib2.Request(url, headers = self.HEADERS)
-		result = opener.open(request).read()
 
-		self._log.debug('Result is: %r' % result)
-		result = simplejson.loads(result)
+		for attempt in xrange (S3_NUM_RETRIES): 
+			try:
+				request = urllib2.Request(url, headers = self.HEADERS)
+				result = opener.open(request).read()
 
-		if 'status' in result: 
-			if result['status'] == 0: 
-				return result['job_id']
-			elif result['status'] == 3:
-				raise AccessForbiddenError(result['msg'])
-			elif result['status'] == 2:
-				raise AccessForbiddenError(result['msg'])
-			else:
-				raise RuntimeError('Unknown result from the server')
+				self._log.debug('Result is: %r' % result)
+				result = simplejson.loads(result)
 
+				if 'status' in result: 
+					if result['status'] == 0: 
+						return result['job_id']
+					elif result['status'] == 3:
+						raise AccessForbiddenError(result['msg'])
+					elif result['status'] == 2:
+						raise AccessForbiddenError(result['msg'])
+					else:
+						raise RuntimeError('Unknown result from the server')
+
+			except (urllib2.URLError, urllib2.HTTPError), e:
+				pass
+		raise CoreFarmError('Connection timeout - please check your connection and try again')
+		
 
 # UPLOAD MECHANISM 
 	def _upload_part(self, data, part_number, key, upload_id):
@@ -141,7 +148,7 @@ class StaticFarm(object):
 				return result.headers['etag']
 			except (urllib2.URLError, urllib2.HTTPError), e:
 				pass
-		raise
+		raise CoreFarmError('Connection timeout - please check your connection and try again')
 
 	def upload (self, job_id, datafile, compress = False): 
 		self._log.debug('Uploading file to S3')
@@ -202,29 +209,43 @@ class StaticFarm(object):
 		for item in etags.iteritems():
 		  data += '<Part><PartNumber>%s</PartNumber><ETag>%s</ETag></Part>' % item
 		data += '</CompleteMultipartUpload>'
-		request = urllib2.Request(
-			COREFARM_API + 'request_signature?' + urllib.urlencode(dict(
-					method = 'post',
-					content_type = 'application/xml',
-					key = '%(key)s?uploadId=%(upload_id)s' % locals()
-				)
-			),
-			headers = self.HEADERS,
-		)
-		signature = opener.open(request).read()
-		request = urllib2.Request(
-			S3_HOST + key + '?' + urllib.urlencode(dict(
-				uploadId = str(upload_id),
-			)) + '&' + signature,
-			data,
-			headers = dict(self.HEADERS, **{
-				'content-type': 'application/xml',
-			})
-		)
-		result = opener.open(request)
+	
+		for attempt in xrange(S3_NUM_RETRIES):
+			try:
+				request = urllib2.Request(
+					COREFARM_API + 'request_signature?' + urllib.urlencode(dict(
+							method = 'post',
+							content_type = 'application/xml',
+							key = '%(key)s?uploadId=%(upload_id)s' % locals()
+							)
+											       ),
+					headers = self.HEADERS,
+					)
+				signature = opener.open(request).read()
+				attempt = S3_NUM_RETRIES + 1 
+			except (urllib2.URLError, urllib2.HTTPError), e:
+				pass
+		
+		for attempt in xrange(S3_NUM_RETRIES):
+			try:
+				request = urllib2.Request(
+					S3_HOST + key + '?' + urllib.urlencode(dict(
+							uploadId = str(upload_id),
+							)) + '&' + signature,
+					data,
+					headers = dict(self.HEADERS, **{
+							'content-type': 'application/xml',
+							})
+					)
+				result = opener.open(request)
 
-		if result and result.code != 200:
-			self._log.debug('Response from S3: %r' % result)
+				if result and result.code != 200:
+					self._log.debug('Response from S3: %r' % result)
+				return 
+			except (urllib2.URLError, urllib2.HTTPError), e:
+				pass
+		raise CoreFarmError('Connection timeout - please check your connection and try again')
+
 
 
 	def start_job(self, job_id, custom):
@@ -249,16 +270,22 @@ class StaticFarm(object):
 		)
 
 		self._log.debug('Fetching the URL: %r' % url)
-		request = urllib2.Request(url, headers = self.HEADERS)
-		result = opener.open(request).read()
 
-		self._log.debug('Result is: %r' % result)
-		result = simplejson.loads(result)
+		for attempt in xrange(S3_NUM_RETRIES):
+			try:
+				request = urllib2.Request(url, headers = self.HEADERS)
+				result = opener.open(request).read()
 
-		if 'status' in result:
-			if result['status'] == 0:
-				return ; # Blender.Draw.PupMenu('Your job is now running. You can track its status from your manager on www.corefarm.com; you will also receive an email when it is completed. Thanks!')
-			else:
-				raise CoreFarmError(result['msg'])
-		else:
-			raise RuntimeError('Unknown result from the server')
+				self._log.debug('Result is: %r' % result)
+				result = simplejson.loads(result)
+				
+				if 'status' in result:
+					if result['status'] == 0:
+						return ; # Blender.Draw.PupMenu('Your job is now running. You can track its status from your manager on www.corefarm.com; you will also receive an email when it is completed. Thanks!')
+					else:
+						raise CoreFarmError(result['msg'])
+				else:
+					raise RuntimeError('Unknown result from the server')
+			except (urllib2.URLError, urllib2.HTTPError), e:
+				pass
+		raise CoreFarmError('Connection timeout - please check your connection and try again')
