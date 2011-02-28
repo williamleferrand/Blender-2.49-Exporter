@@ -19,7 +19,7 @@ class PutRequest(urllib2.Request):
 		return 'PUT'
 
 
-DEBUG_HTTP = False
+DEBUG_HTTP = True
 #COREFARM_API = 'http://lb.corefarm.com/' #'http://gateway.corefarm.com/'
 COREFARM_API = 'http://lb.corefarm.com/' 
 S3_HOST = 'http://corefarm-data.s3.amazonaws.com/'
@@ -243,7 +243,7 @@ class StaticFarm(object):
 
 				if result and result.code != 200:
 					self._log.debug('Response from S3: %r' % result)
-				return 
+					return 
 			except (urllib2.URLError, urllib2.HTTPError), e:
 				pass
 		raise CoreFarmError('Connection timeout - please check your connection and try again')

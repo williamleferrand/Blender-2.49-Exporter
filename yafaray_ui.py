@@ -3120,7 +3120,7 @@ def gui():				# the function to draw the screen
 	height -= 20		
 	drawText (10, height, "Corefarm is a rendering farm in the cloud, capable of speeding up your"); 
 	height -= 15 
-	drawText (10, height, "Yafaray renders by a 100x factor. Checkout www.corefarm.com for"); 
+	drawText (10, height, "Yafaray renders. Checkout www.corefarm.com for"); 
 	height -= 15 
 	drawText (10, height, "more details");  
 	height -= 20 
