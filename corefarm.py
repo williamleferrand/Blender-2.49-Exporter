@@ -26,11 +26,15 @@ S3_HOST = 'http://corefarm-data.s3.amazonaws.com/'
 USER_AGENT = 'Blender-Yafaray-Exporter/1.0'
 YFVERSION = '0.1.2'
 
-S3_MIN_CHUNK_SIZE = 5 * 1024 * 1024 # 5 S3
+S3_MIN_CHUNK_SIZE = 5 * 1024 * 1024 # 5 megabytes
 
-megabytes_MAX_CHUNK_COUNT = 1024
+S3_MAX_CHUNK_COUNT = 1024
+
 S3_NUM_RETRIES = 3
 
+
+timeout = 3600
+socket.setdefaulttimeout(timeout)
 
 if DEBUG_HTTP:
 	import httplib
