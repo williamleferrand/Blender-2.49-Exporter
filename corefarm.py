@@ -26,9 +26,9 @@ S3_HOST = 'http://corefarm-data.s3.amazonaws.com/'
 USER_AGENT = 'Blender-Yafaray-Exporter/1.0'
 YFVERSION = '0.1.2'
 
-S3_MIN_CHUNK_SIZE = 5 * 1024 * 1024 # 5 megabytes
+S3_MIN_CHUNK_SIZE = 5 * 1024 * 1024 # 5 S3
 
-S3_MAX_CHUNK_COUNT = 1024
+megabytes_MAX_CHUNK_COUNT = 1024
 S3_NUM_RETRIES = 3
 
 
@@ -240,10 +240,12 @@ class StaticFarm(object):
 							})
 					)
 				result = opener.open(request)
-
+				
+				if result and result.code = 200: 
+					return
 				if result and result.code != 200:
 					self._log.debug('Response from S3: %r' % result)
-					return 
+				
 			except (urllib2.URLError, urllib2.HTTPError), e:
 				pass
 		raise CoreFarmError('Connection timeout - please check your connection and try again')
