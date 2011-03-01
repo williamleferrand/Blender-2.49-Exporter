@@ -245,7 +245,7 @@ class StaticFarm(object):
 				if result and result.code == 200: 
 					return
 				if result and result.code != 200:
-					self._log.debug('Response from S3: %r' % result)
+					self._log.debug('Response from S3: %d' % result.code)
 				
 			except (urllib2.URLError, urllib2.HTTPError), e:
 				pass
