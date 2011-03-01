@@ -241,7 +241,7 @@ class StaticFarm(object):
 					)
 				result = opener.open(request)
 				
-				if result and result.code = 200: 
+				if result and result.code == 200: 
 					return
 				if result and result.code != 200:
 					self._log.debug('Response from S3: %r' % result)
