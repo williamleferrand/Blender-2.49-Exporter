@@ -33,9 +33,6 @@ S3_MAX_CHUNK_COUNT = 1024
 S3_NUM_RETRIES = 3
 
 
-timeout = 3600
-socket.setdefaulttimeout(timeout)
-
 if DEBUG_HTTP:
 	import httplib
 	httplib.HTTPConnection.debuglevel = 1
