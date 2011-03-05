@@ -2868,14 +2868,18 @@ def button_event(evt):  # the function to handle Draw Button events
 			## Tons of error handling has to be done here 
 
 		except AccessForbiddenError:
+			print 'Access forbidden' 
 			Blender.Draw.PupMenu(unicode("Corefarm|Please specify your corefarm credentials or register on www.corefarm.com"))
 			button_event(TabFarmSettings.evShow)
 		except urllib2.HTTPError, e:
+			print 'HTTPError'
 			Blender.Draw.PupMenu('Corefarm Error|Service is unavailable')
 		except IOError, e:
+			print 'IO ERROR'
 			Blender.Window.DrawProgressBar(1.0, "Failed")
 			Blender.Draw.PupMenu('Service is unavailable, please try later.')
 		except CoreFarmError, e:
+			print 'Corefarm error'
 			Blender.Draw.PupMenu(unicode(e))
 			Blender.Window.DrawProgressBar(1.0, "Done with warning")
 			if isinstance(e, AccessForbiddenError):
@@ -2883,10 +2887,13 @@ def button_event(evt):  # the function to handle Draw Button events
 				"""
 				raise
 		except MissingTexture:
+			print 'Missing texture'
 			pass
 		except RuntimeError, e: 
+			print 'RuntimeError'
 			Blender.Draw.PupMenu(unicode(e))		
 		except Exception, e:
+			print 'Exception'
 			Blender.Draw.PupMenu("Exception!")
 			Blender.Window.DrawProgressBar(1.0, "Done with error")
 			raise e

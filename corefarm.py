@@ -102,7 +102,7 @@ class StaticFarm(object):
 				request = urllib2.Request(url, headers = self.HEADERS)
 				result = opener.open(request).read()
 
-				self._log.debug('Result is: %r' % result)
+				#self._log.debug('Result is: %r' % result)
 				result = simplejson.loads(result)
 
 				if 'status' in result: 
@@ -124,6 +124,7 @@ class StaticFarm(object):
 	def _upload_part(self, data, part_number, key, upload_id):
 		for attempt in xrange(S3_NUM_RETRIES):
 			try:
+				print ('_upload_part' + key + ' ' + str (part_number))
 				self._log.debug('Requesting the signature')
 				request = urllib2.Request(
 					COREFARM_API + 'request_signature?' + urllib.urlencode(dict(
@@ -134,7 +135,10 @@ class StaticFarm(object):
 					),
 					headers = self.HEADERS
 				)
+				print 'requesting signature\n'
 				signature = opener.open(request).read()
+				print ('signature is ' + signature + '\n')
+				# For Alain : here it seems to fail ;( 
 				self._log.debug('Signature is %s' % signature)
 				request = PutRequest(
 					S3_HOST + key + '?' + urllib.urlencode(dict(
@@ -147,9 +151,10 @@ class StaticFarm(object):
 					})
 				)
 				result = opener.open(request)
-				self._log.debug('S3 result is %s' % result)
+				print ('S3 result is ' + result.headers['etag'] + '\n')
 				return result.headers['etag']
 			except (urllib2.URLError, urllib2.HTTPError), e:
+				print 'URL Error, but there are several attempts'
 				pass
 		raise CoreFarmError('Connection timeout - please check your connection and try again')
 
@@ -250,8 +255,6 @@ class StaticFarm(object):
 			except (urllib2.URLError, urllib2.HTTPError), e:
 				pass
 		raise CoreFarmError('Connection timeout - please check your connection and try again')
-
-
 
 	def start_job(self, job_id, custom):
 		self._log.debug('Starting the job: %s' % job_id)

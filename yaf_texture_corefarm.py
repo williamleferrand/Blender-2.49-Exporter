@@ -201,6 +201,7 @@ class yafTexture:
 				imagefile = get_image_filename(tex,blenderlib)
 				
 				if (not os.path.isfile(imagefile)):
+					print ('Sorry, but ' + imagefile + ' is missing. Upload is aborting')
 					Blender.Draw.PupMenu('Sorry, but '+imagefile+' is missing on your system. Please correct this dependancy and trigger the rendering again') 
 					raise MissingTexture
 		
