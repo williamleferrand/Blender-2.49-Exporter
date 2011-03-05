@@ -19,7 +19,7 @@ class PutRequest(urllib2.Request):
 		return 'PUT'
 
 
-DEBUG_HTTP = True
+DEBUG_HTTP = False
 #COREFARM_API = 'http://lb.corefarm.com/' #'http://gateway.corefarm.com/'
 COREFARM_API = 'http://lb.corefarm.com/' 
 S3_HOST = 'http://corefarm-data.s3.amazonaws.com/'
