@@ -153,8 +153,11 @@ class StaticFarm(object):
 				result = opener.open(request)
 				print ('S3 result is ' + result.headers['etag'] + '\n')
 				return result.headers['etag']
-			except (urllib2.URLError, urllib2.HTTPError), e:
-				print 'URL Error, but there are several attempts'
+			except urllib2.HTTPError, e:
+				print ('HTTPError : ' + str (e.code))
+				pass
+			except urllib2.URLError, e:
+				print ('URLError : ' + e.reason)
 				pass
 		raise CoreFarmError('Connection timeout - please check your connection and try again')
 
@@ -233,6 +236,7 @@ class StaticFarm(object):
 				attempt = S3_NUM_RETRIES + 1 
 			except (urllib2.URLError, urllib2.HTTPError), e:
 				pass
+		
 		
 		for attempt in xrange(S3_NUM_RETRIES):
 			try:
