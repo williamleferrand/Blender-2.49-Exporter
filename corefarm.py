@@ -137,9 +137,16 @@ class StaticFarm(object):
 				print 'requesting signature\n'
 				signature = opener.open(request).read()
 				print ('signature is ' + signature + '\n')
+
 				# For Alain : here it seems to fail ;( 
 				self._log.debug('Signature is %s' % signature)
-				request = PutRequest(
+				# opener = urllib2.build_opener(urllib2.HTTPHandler)
+#request = urllib2.Request('http://example.org', data='your_put_data')
+#request.add_header('Content-Type', 'your/contenttype')
+#request.get_method = lambda: 'PUT'
+#url = opener.open(request)
+				print  ('About to PUT to S3, key ' + key)
+				request = urllib2.Request(
 					S3_HOST + key + '?' + urllib.urlencode(dict(
 						partNumber = str(part_number),
 						uploadId = str(upload_id),
@@ -149,6 +156,7 @@ class StaticFarm(object):
 						'Content-Type': 'application/binary',
 					})
 				)
+				request.get_method = lambda: 'PUT'
 				result = opener.open(request)
 				print ('S3 result is ' + result.headers['etag'] + '\n')
 				return result.headers['etag']
@@ -220,6 +228,8 @@ class StaticFarm(object):
 		  data += '<Part><PartNumber>%s</PartNumber><ETag>%s</ETag></Part>' % item
 		data += '</CompleteMultipartUpload>'
 	
+		# AWSAccessKeyId=AKIAIUUFI6MGYCEORTNQ&Signature=0%2FMO2faZTWuPa98gB7EfPF0k18Q%3D&Expires=1299486577
+
 		for attempt in xrange(S3_NUM_RETRIES):
 			try:
 				request = urllib2.Request(
@@ -232,8 +242,13 @@ class StaticFarm(object):
 					headers = self.HEADERS,
 					)
 				signature = opener.open(request).read()
-				attempt = S3_NUM_RETRIES + 1 
-			except (urllib2.URLError, urllib2.HTTPError), e:
+				print ('Signature from lb.corefarm.com: ' + signature)
+				break 
+			except urllib2.HTTPError, e:
+				print ('HTTPError (lb.corefarm.com) : ' + str (e.code))
+				pass
+			except urllib2.URLError, e:
+				print ('URLError (lb.corefarm.com) : ' + e.reason)
 				pass
 		
 		
@@ -245,7 +260,7 @@ class StaticFarm(object):
 							)) + '&' + signature,
 					data,
 					headers = dict(self.HEADERS, **{
-							'content-type': 'application/xml',
+							'Content-Type': 'application/xml',
 							})
 					)
 				result = opener.open(request)
@@ -253,9 +268,13 @@ class StaticFarm(object):
 				if result and result.code == 200: 
 					return
 				if result and result.code != 200:
+					print ('Return code is not 200 but ' + str (result.code))
 					self._log.debug('Response from S3: %d' % result.code)
-				
-			except (urllib2.URLError, urllib2.HTTPError), e:
+			except urllib2.HTTPError, e:
+				print ('HTTPError (S3) : ' + str (e.code))
+				pass
+			except urllib2.URLError, e:
+				print ('URLError (S3) : ' + e.reason)
 				pass
 		raise CoreFarmError('Connection timeout - please check your connection and try again')
 
