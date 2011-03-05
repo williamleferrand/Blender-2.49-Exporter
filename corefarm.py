@@ -32,7 +32,6 @@ S3_MAX_CHUNK_COUNT = 1024
 
 S3_NUM_RETRIES = 3
 
-
 if DEBUG_HTTP:
 	import httplib
 	httplib.HTTPConnection.debuglevel = 1
