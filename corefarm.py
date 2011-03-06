@@ -164,7 +164,7 @@ class StaticFarm(object):
 				print ('HTTPError : ' + str (e.code))
 				pass
 			except urllib2.URLError, e:
-				print ('URLError : ' + e.reason)
+				print ('URLError : ' + str (e.reason))
 				pass
 		raise CoreFarmError('Connection timeout - please check your connection and try again')
 
@@ -248,7 +248,7 @@ class StaticFarm(object):
 				print ('HTTPError (lb.corefarm.com) : ' + str (e.code))
 				pass
 			except urllib2.URLError, e:
-				print ('URLError (lb.corefarm.com) : ' + e.reason)
+				print ('URLError (lb.corefarm.com) : ' + str(e.reason))
 				pass
 		
 		
