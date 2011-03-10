@@ -41,8 +41,7 @@ opener = urllib2.build_opener(
 )
 
 
-timeout = 3600
-socket.setdefaulttimeout(timeout)
+socket.setdefaulttimeout(None)
 
 class CoreFarmError(RuntimeWarning): pass
 class AccessForbiddenError(CoreFarmError): pass
@@ -164,7 +163,7 @@ class StaticFarm(object):
 				print ('HTTPError : ' + str (e.code))
 				pass
 			except urllib2.URLError, e:
-				print ('URLError : ' + str (e.reason))
+				print ('URLError ')
 				pass
 		raise CoreFarmError('Connection timeout - please check your connection and try again')
 
@@ -248,7 +247,7 @@ class StaticFarm(object):
 				print ('HTTPError (lb.corefarm.com) : ' + str (e.code))
 				pass
 			except urllib2.URLError, e:
-				print ('URLError (lb.corefarm.com) : ' + str(e.reason))
+				print ('URLError (lb.corefarm.com) ')
 				pass
 		
 		
@@ -274,7 +273,7 @@ class StaticFarm(object):
 				print ('HTTPError (S3) : ' + str (e.code))
 				pass
 			except urllib2.URLError, e:
-				print ('URLError (S3) : ' + e.reason)
+				print ('URLError (S3)')
 				pass
 		raise CoreFarmError('Connection timeout - please check your connection and try again')
 
