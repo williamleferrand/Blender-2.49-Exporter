@@ -30,9 +30,9 @@ S3_MIN_CHUNK_SIZE = 5 * 1024 * 1024 # 5 megabytes
 
 S3_MAX_CHUNK_COUNT = 1024
 
-S3_NUM_RETRIES = 3
+S3_NUM_RETRIES = 5
 
-if DEBUG_HTTP:
+if DEBUG_HTTP: 
 	import httplib
 	httplib.HTTPConnection.debuglevel = 1
 
@@ -41,7 +41,6 @@ opener = urllib2.build_opener(
 )
 
 
-socket.setdefaulttimeout(None)
 
 class CoreFarmError(RuntimeWarning): pass
 class AccessForbiddenError(CoreFarmError): pass
@@ -77,7 +76,7 @@ class StaticFarm(object):
 
 	def get_new_job(self, kind): 
 		self._log.debug('Getting a new job id.')
-		socket.setdefaulttimeout(10)
+		
 		method = 'new_job'
 		parameters = self._sign(
 			method,
@@ -280,7 +279,7 @@ class StaticFarm(object):
 	def start_job(self, job_id, custom):
 		self._log.debug('Starting the job: %s' % job_id)
 		self._log.debug('Job type: %d' % self._output_type)
-		socket.setdefaulttimeout(10)
+		
 		method = 'start_job'
 		parameters = self._sign(
 			method,
@@ -318,3 +317,5 @@ class StaticFarm(object):
 			except (urllib2.URLError, urllib2.HTTPError), e:
 				pass
 		raise CoreFarmError('Connection timeout - please check your connection and try again')
+
+
